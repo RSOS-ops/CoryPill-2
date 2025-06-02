@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { FontLoader } from 'three/addons/loaders/FontLoader.js';
 import { TextGeometry } from 'three/addons/geometries/TextGeometry.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 let scene, camera, renderer;
 let textMesh;
@@ -33,6 +34,14 @@ function init() {
     renderer.setClearColor(0x000000); // Black background
     document.body.appendChild(renderer.domElement);
 
+    // Lighting
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.8); // Soft white light
+    scene.add(ambientLight);
+
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.7); // White light, moderate intensity
+    directionalLight.position.set(5, 10, 7.5); // Positioned to the side and above
+    scene.add(directionalLight);
+
     // Load Font
     const fontLoader = new FontLoader();
     fontLoader.load(
@@ -60,6 +69,50 @@ function init() {
 
     // Event Listeners
     window.addEventListener('resize', onWindowResize, false);
+
+    // GLTF Model Loading
+    const gltfLoader = new GLTFLoader();
+    const modelUrl = 'https://raw.githubusercontent.com/RSOS-ops/CoryPill-2/7eb893d18a45859db5110cf113a0a94f1cb46bfd/CoryPill_GLTF.glb';
+
+    gltfLoader.load(
+        modelUrl,
+        (gltf) => {
+            const model = gltf.scene;
+
+            // Calculate bounding box for scaling
+            const box = new THREE.Box3().setFromObject(model);
+            const size = box.getSize(new THREE.Vector3());
+            // const center = box.getCenter(new THREE.Vector3()); // center calculation can be kept if needed for complex centering later
+
+            const maxDim = Math.max(size.x, size.y, size.z);
+            if (maxDim > 0) {
+                const scaleFactor = 1.0 / maxDim;
+                model.scale.set(scaleFactor, scaleFactor, scaleFactor);
+            }
+
+            // Set final position for the model (centered in XY, further from camera)
+            model.position.set(0, 0, -0.5);
+
+            scene.add(model);
+            console.log('GLTF model loaded successfully and positioned.');
+        },
+        (xhr) => {
+            // console.log((xhr.loaded / xhr.total * 100) + '% loaded'); // Optional progress
+        },
+        (error) => {
+            console.error('Error loading GLTF model:', error);
+            // You could add a fallback or user message here
+            const errorDiv = document.createElement('div');
+            errorDiv.style.color = 'red';
+            errorDiv.style.position = 'absolute';
+            errorDiv.style.top = '60%'; // Slightly below the main text
+            errorDiv.style.left = '50%';
+            errorDiv.style.transform = 'translate(-50%, -50%)';
+            errorDiv.style.fontSize = '2em';
+            errorDiv.textContent = "3D Model Load Error";
+            document.body.appendChild(errorDiv);
+        }
+    );
 
     animate();
 }
@@ -90,7 +143,7 @@ function createText(font) {
     // For exact centering, we need to offset by half its computed width and height
     textMesh.position.x = -textWidth / 2;
     textMesh.position.y = -textHeight / 2;
-    // textMesh.position.z is 0 by default, camera is at z=2
+    textMesh.position.z = 0.5; // Move text slightly forward
 
     scene.add(textMesh);
 }
