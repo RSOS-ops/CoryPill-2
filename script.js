@@ -12,6 +12,7 @@ const model1Data = {
     gltfModel: null, // The Three.js object for the model
     modelUrl: 'https://raw.githubusercontent.com/RSOS-ops/CoryPill-2/main/ShadowedGaze-good-1.glb', // URL to load the GLB/GLTF file
     initialScale: new THREE.Vector3(1, 1, 1), // Initial scale after normalization
+    initialQuaternionDuringScaleUp: null,
     isRotationBoostActive: false, // Flag for rotation speed boost
     boostEndTime: 0, // Timestamp when rotation boost ends
     isScalingDown: false, // Flag for scaling down animation
@@ -25,6 +26,7 @@ const model2Data = {
     gltfModel: null, // The Three.js object for the model
     modelUrl: 'https://raw.githubusercontent.com/RSOS-ops/CoryPill-2/main/CoryPill_StackedText-Centrd.glb', // URL to load the GLB/GLTF file
     initialScale: new THREE.Vector3(1, 1, 1), // Initial scale after normalization
+    initialQuaternionDuringScaleUp: null,
     isRotationBoostActive: false, // Flag for rotation speed boost
     boostEndTime: 0, // Timestamp when rotation boost ends
     isScalingUp: false, // Flag for scaling up animation (Seq B for Model 2)
@@ -310,6 +312,7 @@ function animate() {
                     model2Data.gltfModel.visible = true;
                     model2Data.gltfModel.scale.set(0, 0, 0);
                     model2Data.isScalingUp = true;
+                    model2Data.initialQuaternionDuringScaleUp = null; 
                     model2Data.scaleStartTime = elapsedTimeTotal;
                     model2Data.isRotationBoostActive = true;
                     model2Data.boostEndTime = elapsedTimeTotal + animationConfig.BOOST_DURATION;
@@ -335,6 +338,7 @@ function animate() {
                     model1Data.gltfModel.visible = true;
                     model1Data.gltfModel.scale.set(0, 0, 0);
                     model1Data.isScalingUp = true;
+                    model1Data.initialQuaternionDuringScaleUp = null; 
                     model1Data.scaleStartTimeUp = elapsedTimeTotal;
                     model1Data.isRotationBoostActive = true;
                     model1Data.boostEndTime = elapsedTimeTotal + animationConfig.BOOST_DURATION;
@@ -443,12 +447,20 @@ function animateModel(modelData, deltaTime, elapsedTimeTotal) {
     // --- Scaling Up Logic ---
     // Handles the animation when a model is growing and appearing.
     if (modelData.isScalingUp) {
+        if (!modelData.initialQuaternionDuringScaleUp) {
+            modelData.initialQuaternionDuringScaleUp = modelData.gltfModel.quaternion.clone();
+        }
         // Model 1 uses 'scaleStartTimeUp', Model 2 uses 'scaleStartTime' for its distinct sequence.
          const startTime = (modelData === model1Data) ? modelData.scaleStartTimeUp : modelData.scaleStartTime;
         const animElapsedTime = elapsedTimeTotal - startTime; // Time since scaling up started
 
         if (animElapsedTime < animationConfig.SCALE_DURATION) {
             const scaleProgress = animElapsedTime / animationConfig.SCALE_DURATION; // Progress from 0 to 1
+
+            const targetQuaternion = new THREE.Quaternion(); // Identity quaternion (0,0,0 rotation)
+            if (modelData.initialQuaternionDuringScaleUp) {
+                modelData.gltfModel.quaternion.copy(modelData.initialQuaternionDuringScaleUp).slerp(targetQuaternion, scaleProgress);
+            }
             // Scale factor from 0 up to 1 (based on initialScale)
             modelData.gltfModel.scale.set(
                 modelData.initialScale.x * scaleProgress,
@@ -459,6 +471,8 @@ function animateModel(modelData, deltaTime, elapsedTimeTotal) {
             // Scaling up finished
             modelData.gltfModel.scale.copy(modelData.initialScale); // Ensure scale is set to initial full scale
             modelData.isScalingUp = false; // Reset flag
+            modelData.gltfModel.rotation.set(0, 0, 0); // Set final rotation to (0,0,0)
+            modelData.initialQuaternionDuringScaleUp = null; // Reset for next use
 
             // Post-scaling up: Update active model identifier and set appropriate light intensities
             // This is now handled by the state machine in the main animate() function upon transitioning to IDLE states.
@@ -467,10 +481,11 @@ function animateModel(modelData, deltaTime, elapsedTimeTotal) {
     }
 
     // --- Rotation Logic ---
-    // Handles continuous rotation of the model, with a possible speed boost.
-    if (modelData.gltfModel.visible) { // Only rotate if visible
+    // Apply Y-axis rotation ONLY if the model is visible AND NOT currently scaling UP.
+    if (modelData.gltfModel.visible && !modelData.isScalingUp) {
         let currentRotationSpeed = animationConfig.NORMAL_ROTATION_SPEED;
-        // Apply boost if active
+
+        // Check for rotation boost (typically for scaling down or specific click events)
         if (modelData.isRotationBoostActive) {
             if (elapsedTimeTotal < modelData.boostEndTime) {
                 currentRotationSpeed = animationConfig.NORMAL_ROTATION_SPEED * animationConfig.BOOST_ROTATION_MULTIPLIER;
@@ -479,25 +494,22 @@ function animateModel(modelData, deltaTime, elapsedTimeTotal) {
             }
         }
 
-        // Determine if this model is the one that should be idling (rotating normally when no other animation is playing for it)
         const isModel1Idle = modelData === model1Data && currentSequenceState === SEQUENCE_STATES.SEQUENCE_1_IDLE;
         const isModel2Idle = modelData === model2Data && currentSequenceState === SEQUENCE_STATES.SEQUENCE_2_IDLE;
         const isCurrentlyTheActiveIdleModel = isModel1Idle || isModel2Idle;
 
         // Apply rotation if:
-        // 1. The model is currently scaling up (rotation boost is active).
-        // 2. The model is currently scaling down (rotation boost is active).
-        // 3. The model is the "active" one and in its IDLE state (normal rotation speed).
-        if (modelData.isScalingUp || modelData.isScalingDown) {
-            modelData.gltfModel.rotation.y += currentRotationSpeed * deltaTime; // Boosted rotation
+        // 1. The model is currently scaling down (boost may apply).
+        // 2. The model is the "active" one and in its IDLE state (normal rotation speed).
+        if (modelData.isScalingDown) {
+            modelData.gltfModel.rotation.y += currentRotationSpeed * deltaTime;
         } else if (isCurrentlyTheActiveIdleModel) {
-            // For idle state, ensure boost is not active unless specifically intended for an idle boost (not current design)
+            // For idle state, ensure boost is not active unless specifically intended.
             if (modelData.isRotationBoostActive && elapsedTimeTotal < modelData.boostEndTime) {
-                 // This case should ideally not be hit if boost is only for scaling, but kept for safety
                 modelData.gltfModel.rotation.y += currentRotationSpeed * deltaTime;
             } else {
                 modelData.isRotationBoostActive = false; // Ensure boost is off for normal idle
-                modelData.gltfModel.rotation.y += animationConfig.NORMAL_ROTATION_SPEED * deltaTime; // Normal idle rotation
+                modelData.gltfModel.rotation.y += animationConfig.NORMAL_ROTATION_SPEED * deltaTime;
             }
         }
     }
