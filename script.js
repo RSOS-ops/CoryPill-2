@@ -5,6 +5,8 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 let scene, camera, renderer;
 let textMesh;
+let gltfModel; // Add this line
+const clock = new THREE.Clock(); // Add this line
 
 // Approximate conversion for 'em' to three.js units.
 // 1em is typically 16px. Let's assume a common screen height for calculation,
@@ -77,23 +79,23 @@ function init() {
     gltfLoader.load(
         modelUrl,
         (gltf) => {
-            const model = gltf.scene;
+            gltfModel = gltf.scene; // Assign to the module-scoped variable
 
             // Calculate bounding box for scaling
-            const box = new THREE.Box3().setFromObject(model);
+            const box = new THREE.Box3().setFromObject(gltfModel);
             const size = box.getSize(new THREE.Vector3());
             // const center = box.getCenter(new THREE.Vector3()); // center calculation can be kept if needed for complex centering later
 
             const maxDim = Math.max(size.x, size.y, size.z);
             if (maxDim > 0) {
                 const scaleFactor = 1.0 / maxDim;
-                model.scale.set(scaleFactor, scaleFactor, scaleFactor);
+                gltfModel.scale.set(scaleFactor, scaleFactor, scaleFactor);
             }
 
             // Set final position for the model (centered in XY, further from camera)
-            model.position.set(0, 0, -0.5);
+            gltfModel.position.set(0, 0, -0.5);
 
-            scene.add(model);
+            scene.add(gltfModel);
             console.log('GLTF model loaded successfully and positioned.');
         },
         (xhr) => {
@@ -156,6 +158,16 @@ function onWindowResize() {
 
 function animate() {
     requestAnimationFrame(animate);
+
+    const deltaTime = clock.getDelta(); // Get time delta for frame-rate independence
+
+    // Rotate GLTF model if it's loaded
+    if (gltfModel) {
+        // Target: 360 degrees (2 * Math.PI radians) every 30 seconds
+        const rotationSpeed = (2 * Math.PI) / 30; // Radians per second
+        gltfModel.rotation.y += rotationSpeed * deltaTime; // Apply rotation for the current frame
+    }
+
     renderer.render(scene, camera);
 }
 
