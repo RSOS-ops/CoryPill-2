@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 let scene, camera, renderer;
+let directionalLight; // Main directional light
 let newLight1, newLight2; // Variables to store the new lights
 const clock = new THREE.Clock();
 
@@ -63,15 +64,15 @@ function init() {
     const ambientLight = new THREE.AmbientLight(0xffffff, 4.0); // Soft white light
     scene.add(ambientLight);
 
-const directionalLight = new THREE.DirectionalLight(0xffffff, 3.0); // Color updated
+directionalLight = new THREE.DirectionalLight(0xffffff, 5.0); // Color updated, Intensity updated
     directionalLight.position.set(5, 10, 7.5); // Positioned to the side and above
     scene.add(directionalLight);
 
-newLight1 = new THREE.DirectionalLight(0xffffff, 3.0); // Was directionalLight2
+newLight1 = new THREE.DirectionalLight(0xffffff, 5.0); // Was directionalLight2, Intensity updated
 newLight1.position.set(-5, -10, -7.5);
 scene.add(newLight1);
 
-newLight2 = new THREE.DirectionalLight(0xffffff, 3.0); // Was directionalLight3
+newLight2 = new THREE.DirectionalLight(0xffffff, 5.0); // Was directionalLight3, Intensity updated
 newLight2.position.set(0, 0, 5);
 scene.add(newLight2);
 
@@ -210,13 +211,16 @@ scene.add(newLight2);
             isRotationBoostActive2 = false;
             if (gltfModel2) gltfModel2.visible = false;
 
+            // Set intensities for Model 1 visibility
+            if (directionalLight) directionalLight.intensity = 5.0;
+
             // Initiate fade out for newLight1 and newLight2
             if (newLight1 && newLight2) {
+                newLight1.intensity = 5.0; // Ensure starting from 5.0 for the fade
+                newLight2.intensity = 5.0; // Ensure starting from 5.0 for the fade
                 isFadingOutLights = true;
                 lightsFadeStartTime = clickTime;
-                // Ensure lights are at full intensity before fade starts
-                newLight1.intensity = 3.0;
-                newLight2.intensity = 3.0;
+                isFadingInLights = false; // Prevent conflict with fade-in logic
             }
 
         } else if (activeModelIdentifier === 2) {
@@ -297,7 +301,7 @@ function animate() {
         const animElapsedTime = elapsedTimeTotal - lightsFadeStartTime;
         if (animElapsedTime < SCALE_DURATION) {
             const fadeProgress = animElapsedTime / SCALE_DURATION;
-            const currentIntensity = 3.0 * (1.0 - fadeProgress);
+            const currentIntensity = 5.0 * (1.0 - fadeProgress); // Target 5.0 to 0.0
             if (newLight1) newLight1.intensity = Math.max(0, currentIntensity);
             if (newLight2) newLight2.intensity = Math.max(0, currentIntensity);
         } else {
@@ -314,12 +318,12 @@ function animate() {
             const animElapsedTime = elapsedTimeTotal - lightsFadeInStartTime;
             if (animElapsedTime < SCALE_DURATION) {
                 const fadeInProgress = animElapsedTime / SCALE_DURATION;
-                const currentIntensity = 3.0 * fadeInProgress;
-                if (newLight1) newLight1.intensity = Math.min(3.0, currentIntensity);
-                if (newLight2) newLight2.intensity = Math.min(3.0, currentIntensity);
+                const currentIntensity = 5.0 * fadeInProgress; // Target 0.0 to 5.0
+                if (newLight1) newLight1.intensity = Math.min(5.0, currentIntensity);
+                if (newLight2) newLight2.intensity = Math.min(5.0, currentIntensity);
             } else {
-                if (newLight1) newLight1.intensity = 3.0;
-                if (newLight2) newLight2.intensity = 3.0;
+                if (newLight1) newLight1.intensity = 5.0;
+                if (newLight2) newLight2.intensity = 5.0;
                 isFadingInLights = false;
                 console.log("Lights faded in. Time:", elapsedTimeTotal);
             }
@@ -354,6 +358,11 @@ function animate() {
                 isScalingUp1 = false;
                 activeModelIdentifier = 1; // Model 1 is now the active, visible, idle model
                 console.log("Sequence D (Model 1) complete: scaled up. Active model: 1. Time:", elapsedTimeTotal);
+
+                // Set light intensities for Model 1's active state
+                if (directionalLight) directionalLight.intensity = 5.0;
+                if (newLight1) newLight1.intensity = 5.0;
+                if (newLight2) newLight2.intensity = 5.0;
             }
         }
 
@@ -391,6 +400,11 @@ function animate() {
                 isScalingUp2 = false;
                 activeModelIdentifier = 2; // Model 2 is now the active, visible, idle model
                 console.log("Sequence B (Model 2) complete: scaled up. Active model: 2. Time:", elapsedTimeTotal);
+
+                // Set light intensities for Model 2's active state
+                if (directionalLight) directionalLight.intensity = 3.0;
+                if (newLight1) newLight1.intensity = 0.0;
+                if (newLight2) newLight2.intensity = 0.0;
             }
         }
 
