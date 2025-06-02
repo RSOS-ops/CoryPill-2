@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 let scene, camera, renderer;
+let newLight1, newLight2; // Variables to store the new lights
 const clock = new THREE.Clock();
 
 // --- Model 1 (gltfModel1) Variables ---
@@ -28,6 +29,10 @@ let scaleStartTimeDown2 = 0; // For Seq C
 
 
 // --- General Animation & State Variables ---
+let isFadingOutLights = false;
+let lightsFadeStartTime = 0; // Used for fade out
+let isFadingInLights = false;
+let lightsFadeInStartTime = 0; // Used for fade in
 const NORMAL_ROTATION_SPEED = (3 * Math.PI) / 30; // Radians per second
 const BOOST_ROTATION_MULTIPLIER = 70;
 const BOOST_DURATION = 1.0; // Updated duration
@@ -62,13 +67,13 @@ const directionalLight = new THREE.DirectionalLight(0xffffff, 3.0); // Color upd
     directionalLight.position.set(5, 10, 7.5); // Positioned to the side and above
     scene.add(directionalLight);
 
-const directionalLight2 = new THREE.DirectionalLight(0xffffff, 3.0);
-directionalLight2.position.set(-5, -10, -7.5);
-scene.add(directionalLight2);
+newLight1 = new THREE.DirectionalLight(0xffffff, 3.0); // Was directionalLight2
+newLight1.position.set(-5, -10, -7.5);
+scene.add(newLight1);
 
-const directionalLight3 = new THREE.DirectionalLight(0xffffff, 3.0);
-directionalLight3.position.set(0, 0, 5);
-scene.add(directionalLight3);
+newLight2 = new THREE.DirectionalLight(0xffffff, 3.0); // Was directionalLight3
+newLight2.position.set(0, 0, 5);
+scene.add(newLight2);
 
     // Event Listeners
     window.addEventListener('resize', onWindowResize, false);
@@ -205,6 +210,15 @@ scene.add(directionalLight3);
             isRotationBoostActive2 = false;
             if (gltfModel2) gltfModel2.visible = false;
 
+            // Initiate fade out for newLight1 and newLight2
+            if (newLight1 && newLight2) {
+                isFadingOutLights = true;
+                lightsFadeStartTime = clickTime;
+                // Ensure lights are at full intensity before fade starts
+                newLight1.intensity = 3.0;
+                newLight2.intensity = 3.0;
+            }
+
         } else if (activeModelIdentifier === 2) {
             console.log("Click on Model 2. Starting Sequence C (Model 2 down) & D (Model 1 up). clickTime:", clickTime);
 
@@ -228,6 +242,17 @@ scene.add(directionalLight3);
             isScalingDown1 = false;
             isRotationBoostActive1 = false;
             if (gltfModel1) gltfModel1.visible = false;
+
+            // Initiate fade in for newLight1 and newLight2, timed with Model 1's reappearance
+            if (newLight1 && newLight2) {
+                isFadingInLights = true;
+                lightsFadeInStartTime = clickTime + 1.1; // Align with Model 1 starting to appear
+                isFadingOutLights = false; // Prevent conflict
+                // Ensure lights start from 0 intensity for the fade-in
+                newLight1.intensity = 0.0;
+                newLight2.intensity = 0.0;
+                console.log("Preparing to fade in lights. Start time:", lightsFadeInStartTime);
+            }
 
         } else {
             // This case should ideally not be reached if activeModelIdentifier is managed correctly.
@@ -266,6 +291,40 @@ function animate() {
     requestAnimationFrame(animate);
     const deltaTime = clock.getDelta();
     const elapsedTimeTotal = clock.elapsedTime;
+
+    // Light Fading Logic (for newLight1 and newLight2)
+    if (isFadingOutLights) {
+        const animElapsedTime = elapsedTimeTotal - lightsFadeStartTime;
+        if (animElapsedTime < SCALE_DURATION) {
+            const fadeProgress = animElapsedTime / SCALE_DURATION;
+            const currentIntensity = 3.0 * (1.0 - fadeProgress);
+            if (newLight1) newLight1.intensity = Math.max(0, currentIntensity);
+            if (newLight2) newLight2.intensity = Math.max(0, currentIntensity);
+        } else {
+            if (newLight1) newLight1.intensity = 0;
+            if (newLight2) newLight2.intensity = 0;
+            isFadingOutLights = false;
+            console.log("Lights faded out. Time:", elapsedTimeTotal);
+        }
+    }
+
+    // Light Fading In Logic (for newLight1 and newLight2)
+    if (isFadingInLights) {
+        if (elapsedTimeTotal >= lightsFadeInStartTime) { // Wait for the delay
+            const animElapsedTime = elapsedTimeTotal - lightsFadeInStartTime;
+            if (animElapsedTime < SCALE_DURATION) {
+                const fadeInProgress = animElapsedTime / SCALE_DURATION;
+                const currentIntensity = 3.0 * fadeInProgress;
+                if (newLight1) newLight1.intensity = Math.min(3.0, currentIntensity);
+                if (newLight2) newLight2.intensity = Math.min(3.0, currentIntensity);
+            } else {
+                if (newLight1) newLight1.intensity = 3.0;
+                if (newLight2) newLight2.intensity = 3.0;
+                isFadingInLights = false;
+                console.log("Lights faded in. Time:", elapsedTimeTotal);
+            }
+        }
+    }
 
     // Animation Logic for gltfModel1
     if (gltfModel1) {
