@@ -28,7 +28,7 @@ let scaleStartTimeDown2 = 0; // For Seq C
 
 
 // --- General Animation & State Variables ---
-const NORMAL_ROTATION_SPEED = (2 * Math.PI) / 30; // Radians per second
+const NORMAL_ROTATION_SPEED = (3 * Math.PI) / 30; // Radians per second
 const BOOST_ROTATION_MULTIPLIER = 80;
 const BOOST_DURATION = 1.0; // Updated duration
 const SCALE_DURATION = 1.0; // Updated duration for both scaling down and up
@@ -45,7 +45,7 @@ function init() {
 
     // Camera
     camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    camera.position.z = 2; // Adjust camera position to view the text
+    camera.position.z = 3; // Adjust camera position to view the text
 
     // Renderer
     renderer = new THREE.WebGLRenderer({ antialias: true });
