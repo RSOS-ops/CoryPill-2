@@ -44,7 +44,7 @@ function init() {
     const dracoLoader = new DRACOLoader();
     dracoLoader.setDecoderPath("https://www.gstatic.com/draco/versioned/decoders/1.5.6/");
     gltfLoader.setDRACOLoader(dracoLoader);
-    const modelUrl = "model_optimized.glb"; // Updated to local optimized model
+    const modelUrl = "CoryPill_StackedText-Centrd.glb"; // Updated to local optimized model
 
     gltfLoader.load(
         modelUrl,
