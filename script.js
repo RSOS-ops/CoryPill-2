@@ -59,7 +59,8 @@ function init() {
             // 2. Determine scale factor to normalize max dimension to 1.0
             const maxDim = Math.max(initialSize.x, initialSize.y, initialSize.z);
             const scaleFactor = (maxDim > 0) ? 1.0 / maxDim : 1.0;
-            gltfModel.scale.set(scaleFactor, scaleFactor, scaleFactor);
+            const finalScaleFactor = scaleFactor * 0.67; // Apply 33% reduction
+            gltfModel.scale.set(finalScaleFactor, finalScaleFactor, finalScaleFactor);
 
             // 3. Position model so its GEOMETRIC center is at (0,0,-0.5)
             // The initialCenter was in model's local space. After scaling, its position
