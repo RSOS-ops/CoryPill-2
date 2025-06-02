@@ -31,7 +31,7 @@ function init() {
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.8); // Soft white light
     scene.add(ambientLight);
 
-    const directionalLight = new THREE.DirectionalLight(0x8EC1E7, 0.7); // Color updated
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 1.5); // Color updated
     directionalLight.position.set(5, 10, 7.5); // Positioned to the side and above
     scene.add(directionalLight);
 
