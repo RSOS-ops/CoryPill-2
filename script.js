@@ -28,7 +28,7 @@ function init() {
     document.body.appendChild(renderer.domElement);
 
     // Lighting
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.8); // Soft white light
+    const ambientLight = new THREE.AmbientLight(0xffffff, 2.0); // Soft white light
     scene.add(ambientLight);
 
     const directionalLight = new THREE.DirectionalLight(0xffffff, 1.5); // Color updated
