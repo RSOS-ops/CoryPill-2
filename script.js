@@ -6,6 +6,11 @@ let scene, camera, renderer;
 let gltfModel;
 const clock = new THREE.Clock();
 
+let initialScale = new THREE.Vector3(1, 1, 1); // Default, will be updated
+let isScalingDown = false;
+let scaleDownStartTime = 0;
+const SCALE_DOWN_DURATION = 1.0; // 1 second
+
 // Variables for rotation boost effect
 let isRotationBoostActive = false;
 let boostEndTime = 0;
@@ -61,6 +66,7 @@ function init() {
             const scaleFactor = (maxDim > 0) ? 1.0 / maxDim : 1.0;
             const finalScaleFactor = scaleFactor * 0.67; // Apply 33% reduction
             gltfModel.scale.set(finalScaleFactor, finalScaleFactor, finalScaleFactor);
+            initialScale.copy(gltfModel.scale);
 
             // 3. Position model so its GEOMETRIC center is at (0,0,-0.5)
             // The initialCenter was in model's local space. After scaling, its position
@@ -112,6 +118,14 @@ function init() {
 
     // Event Listener for mouse click to boost rotation
     window.addEventListener('click', () => {
+        // Start or restart scale down animation
+        isScalingDown = true;
+        scaleDownStartTime = clock.elapsedTime;
+        if (gltfModel) { // Ensure gltfModel is loaded
+            gltfModel.scale.copy(initialScale); // Reset to initial scale before starting animation
+        }
+
+        // Rotation boost logic (existing)
         if (!isRotationBoostActive) { // Optional: prevent re-triggering if already boosting, or let it restart
             isRotationBoostActive = true;
             boostEndTime = clock.elapsedTime + BOOST_DURATION;
@@ -134,6 +148,24 @@ function animate() {
     requestAnimationFrame(animate);
 
     const deltaTime = clock.getDelta();
+
+    // Handle scaling down animation
+    if (isScalingDown && gltfModel) {
+        const elapsedTime = clock.elapsedTime - scaleDownStartTime;
+        let scaleProgress = elapsedTime / SCALE_DOWN_DURATION;
+
+        if (scaleProgress >= 1.0) {
+            scaleProgress = 1.0;
+            // Optionally, set isScalingDown = false if you don't want it to animate further once it reaches 0.
+            // However, allowing it to stay true and relying on click to reset scale is also fine.
+            // For now, we'll just cap progress. The click listener already handles reset.
+        }
+
+        // Interpolate scale from initialScale to 0
+        const currentProgressiveScale = 1.0 - scaleProgress;
+        gltfModel.scale.copy(initialScale).multiplyScalar(currentProgressiveScale);
+    }
+
     let currentRotationSpeed = NORMAL_ROTATION_SPEED; // Default to normal speed
 
     if (isRotationBoostActive) {
