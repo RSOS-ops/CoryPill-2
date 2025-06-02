@@ -9,7 +9,7 @@ const clock = new THREE.Clock();
 let isRotationBoostActive = false;
 let boostEndTime = 0;
 const NORMAL_ROTATION_SPEED = (2 * Math.PI) / 30; // Radians per second for 360 deg in 30s
-const BOOST_ROTATION_MULTIPLIER =80;
+const BOOST_ROTATION_MULTIPLIER =100;
 const BOOST_DURATION = .5; // seconds
 
 function init() {
@@ -87,20 +87,6 @@ function init() {
             camera.lookAt(worldSphere.center); // Look at the geometric center of the model
 
             console.log('Camera position adjusted for 90% viewport fill.');
-
-            // Add Fog
-            const fogColor = 0x000000; // Black fog
-            // worldSphere.radius and worldSphere.center are already defined and used above for camera calculations.
-            // distance is also defined above as the camera's distance from worldSphere.center.z
-            // We need distanceToModelCenter which is the direct distance from camera to sphere center.
-            const distanceToModelCenter = camera.position.distanceTo(worldSphere.center);
-            const modelRadius = worldSphere.radius;
-
-            const fogNear = Math.max(0.1, distanceToModelCenter - modelRadius * 1.2); // Start fog slightly before hitting the center, or just behind front face
-            const fogFar = distanceToModelCenter + modelRadius * 4;    // Fully fogged a few model radii behind
-
-            scene.fog = new THREE.Fog(fogColor, fogNear, fogFar);
-            console.log(`Fog added: near ${fogNear.toFixed(2)}, far ${fogFar.toFixed(2)}`);
         },
         (xhr) => {
             // console.log((xhr.loaded / xhr.total * 100) + '% loaded');
