@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { DRACOLoader } from three/addons/loaders/DRACOLoader.js;
 
 let scene, camera, renderer;
 let gltfModel;
@@ -40,7 +41,10 @@ function init() {
 
     // GLTF Model Loading
     const gltfLoader = new GLTFLoader();
-    const modelUrl = 'https://raw.githubusercontent.com/RSOS-ops/CoryPill-2/7e7b5814346dc08cb3b8b0788a9d8652502c72c8/CoryPill_StackedText-1.glb';
+    const dracoLoader = new DRACOLoader();
+    dracoLoader.setDecoderPath("https://www.gstatic.com/draco/versioned/decoders/1.5.6/");
+    gltfLoader.setDRACOLoader(dracoLoader);
+    const modelUrl = "model_optimized.glb"; // Updated to local optimized model
 
     gltfLoader.load(
         modelUrl,
