@@ -16,7 +16,7 @@ const BOOST_DURATION = .5; // seconds
 // Variables for scaling animation
 let isScalingDown = false;
 let scaleStartTime = 0;
-const SCALE_DURATION = 0.5; // seconds
+const SCALE_DURATION = 1; // seconds
 
 function init() {
     // Scene
