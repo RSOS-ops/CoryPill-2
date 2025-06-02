@@ -40,7 +40,7 @@ function init() {
 
     // GLTF Model Loading
     const gltfLoader = new GLTFLoader();
-    const modelUrl = 'https://raw.githubusercontent.com/RSOS-ops/CoryPill-2/7e7b5814346dc08cb3b8b0788a9d8652502c72c8/CoryPill_StackedText-1.glb';
+    const modelUrl = 'ShadowedGaze-good-1.glb';
 
     gltfLoader.load(
         modelUrl,
