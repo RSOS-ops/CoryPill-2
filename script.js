@@ -112,9 +112,14 @@ function init() {
         const center = boundingBox.getCenter(new THREE.Vector3());
         const size = boundingBox.getSize(new THREE.Vector3());
         const maxDim = Math.max(size.x, size.y, size.z);
-        const fov = camera.fov * (Math.PI / 180);
-        let cameraZ = Math.abs(maxDim / 2 * Math.tan(fov * 2)); // Basic calculation
-        cameraZ *= 1.5; // Zoom out a bit
+        const fov = camera.fov * (Math.PI / 180); // Convert vertical FOV to radians
+
+        // Calculate distance to fit object perfectly based on FOV and object's largest dimension
+        // The /2 is because tan(fov/2) relates half the dimension to the distance.
+        let cameraZ = maxDim / 2 / Math.tan(fov / 2);
+        
+        cameraZ *= 2.5; // Zoom out further by applying the new multiplier
+
         camera.position.set(center.x, center.y, center.z + cameraZ);
         camera.lookAt(center);
         console.log('Camera position adjusted for model 1.');
