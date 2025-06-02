@@ -1,25 +1,9 @@
 import * as THREE from 'three';
-import { FontLoader } from 'three/addons/loaders/FontLoader.js';
-import { TextGeometry } from 'three/addons/geometries/TextGeometry.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 let scene, camera, renderer;
-let textMesh;
-let gltfModel; // Add this line
-const clock = new THREE.Clock(); // Add this line
-
-// Approximate conversion for 'em' to three.js units.
-// 1em is typically 16px. Let's assume a common screen height for calculation,
-// or pick a three.js unit size that looks good.
-// For simplicity, we'll aim for a visual size and adjust camera/positioning.
-// A common approach is to make the text have a certain height in world units,
-// then adjust the camera's Z position or FOV.
-// Let's target a text height of around 0.5 to 1 world units for a start.
-// The '5em' is a bit tricky as 'em' is relative to font size of parent,
-// and in three.js we define absolute sizes.
-// We'll define a text size in three.js units that looks like '5em'.
-const TEXT_SIZE = 0.5; // This will be the 'height' of the font in world units
-const TEXT_DEPTH = 0.05; // Depth of the 3D text
+let gltfModel;
+const clock = new THREE.Clock();
 
 function init() {
     // Scene
@@ -44,31 +28,6 @@ function init() {
     directionalLight.position.set(5, 10, 7.5); // Positioned to the side and above
     scene.add(directionalLight);
 
-    // Load Font
-    const fontLoader = new FontLoader();
-    fontLoader.load(
-        // Official three.js examples font path for Roboto Regular
-        'https://unpkg.com/three@0.160.0/examples/fonts/helvetiker_regular.typeface.json', // Using Helvetiker as direct Roboto is not always in this format. For true Roboto, a custom JSON font file is often needed.
-        (font) => {
-            createText(font);
-        },
-        undefined, // onProgress callback
-        (error) => {
-            console.error('FontLoader error:', error);
-            // Fallback: display simple HTML text if font loading fails
-            const errorDiv = document.createElement('div');
-            errorDiv.style.color = 'white';
-            errorDiv.style.position = 'absolute';
-            errorDiv.style.top = '50%';
-            errorDiv.style.left = '50%';
-            errorDiv.style.transform = 'translate(-50%, -50%)';
-            errorDiv.style.fontSize = '5em'; // CSS em
-            errorDiv.style.fontFamily = 'Roboto, sans-serif'; // CSS font family
-            errorDiv.textContent = "Cory Richard (Font Load Error)";
-            document.body.appendChild(errorDiv);
-        }
-    );
-
     // Event Listeners
     window.addEventListener('resize', onWindowResize, false);
 
@@ -79,35 +38,58 @@ function init() {
     gltfLoader.load(
         modelUrl,
         (gltf) => {
-            gltfModel = gltf.scene; // Assign to the module-scoped variable
+            gltfModel = gltf.scene;
 
-            // Calculate bounding box for scaling
-            const box = new THREE.Box3().setFromObject(gltfModel);
-            const size = box.getSize(new THREE.Vector3());
-            // const center = box.getCenter(new THREE.Vector3()); // center calculation can be kept if needed for complex centering later
+            // 1. Calculate pre-scale bounding box and center
+            const initialBox = new THREE.Box3().setFromObject(gltfModel);
+            const initialCenter = initialBox.getCenter(new THREE.Vector3());
+            const initialSize = initialBox.getSize(new THREE.Vector3());
 
-            const maxDim = Math.max(size.x, size.y, size.z);
-            if (maxDim > 0) {
-                const scaleFactor = 1.0 / maxDim;
-                gltfModel.scale.set(scaleFactor, scaleFactor, scaleFactor);
-            }
+            // 2. Determine scale factor to normalize max dimension to 1.0
+            const maxDim = Math.max(initialSize.x, initialSize.y, initialSize.z);
+            const scaleFactor = (maxDim > 0) ? 1.0 / maxDim : 1.0;
+            gltfModel.scale.set(scaleFactor, scaleFactor, scaleFactor);
 
-            // Set final position for the model (centered in XY, further from camera)
-            gltfModel.position.set(0, 0, -0.5);
+            // 3. Position model so its GEOMETRIC center is at (0,0,-0.5)
+            // The initialCenter was in model's local space. After scaling, its position
+            // relative to the pivot is initialCenter.clone().multiplyScalar(scaleFactor).
+            // To move this geometric center to world origin (0,0,0) and then to (0,0,-0.5):
+            const scaledCenterOffset = initialCenter.clone().multiplyScalar(scaleFactor);
+            gltfModel.position.copy(scaledCenterOffset.negate()); // Move pivot so scaled geo center is at (0,0,0)
+            gltfModel.position.z += -0.5; // Then shift the whole thing to target Z
 
             scene.add(gltfModel);
-            console.log('GLTF model loaded successfully and positioned.');
+            console.log('GLTF model loaded, scaled, and positioned with geometric center at (0,0,-0.5).');
+
+            // 4. Adjust camera to make the model fill ~90% of viewport height
+            // Re-calculate bounding sphere AFTER scaling and positioning
+            const currentWorldBox = new THREE.Box3().setFromObject(gltfModel);
+            const worldSphere = currentWorldBox.getBoundingSphere(new THREE.Sphere());
+            const radius = worldSphere.radius;
+
+            // Calculate distance needed to fit the sphere's height (diameter) into 90% of FOV
+            // The "height" of the object we want to fit is effectively its diameter for this purpose.
+            // However, the formula tan(fov/2) = (H/2) / dist uses H/2 (which is radius).
+            const fitRadiusNet = radius / 0.9; // Effective radius for 90% fill (object appears larger)
+            const distance = fitRadiusNet / Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
+
+            camera.position.x = worldSphere.center.x; // Align camera X with model's geometric center X
+            camera.position.y = worldSphere.center.y; // Align camera Y with model's geometric center Y
+            camera.position.z = worldSphere.center.z + distance; // Position camera 'distance' away from model's center Z
+
+            camera.lookAt(worldSphere.center); // Look at the geometric center of the model
+
+            console.log('Camera position adjusted for 90% viewport fill.');
         },
         (xhr) => {
-            // console.log((xhr.loaded / xhr.total * 100) + '% loaded'); // Optional progress
+            // console.log((xhr.loaded / xhr.total * 100) + '% loaded');
         },
         (error) => {
             console.error('Error loading GLTF model:', error);
-            // You could add a fallback or user message here
             const errorDiv = document.createElement('div');
             errorDiv.style.color = 'red';
             errorDiv.style.position = 'absolute';
-            errorDiv.style.top = '60%'; // Slightly below the main text
+            errorDiv.style.top = '50%'; // Centered now, as no text
             errorDiv.style.left = '50%';
             errorDiv.style.transform = 'translate(-50%, -50%)';
             errorDiv.style.fontSize = '2em';
@@ -117,37 +99,6 @@ function init() {
     );
 
     animate();
-}
-
-function createText(font) {
-    const text = "Cory Richard";
-    const textGeo = new TextGeometry(text, {
-        font: font,
-        size: TEXT_SIZE,
-        height: TEXT_DEPTH, // three.js 'height' is extrusion depth
-        curveSegments: 12,
-        bevelEnabled: false
-    });
-
-    // Compute bounding box to center the text
-    textGeo.computeBoundingBox();
-    const textBoundingBox = textGeo.boundingBox;
-    const textWidth = textBoundingBox.max.x - textBoundingBox.min.x;
-    const textHeight = textBoundingBox.max.y - textBoundingBox.min.y;
-
-    // Material
-    const textMat = new THREE.MeshBasicMaterial({ color: 0xFFFFFF }); // White
-
-    // Mesh
-    textMesh = new THREE.Mesh(textGeo, textMat);
-
-    // Center the text
-    // For exact centering, we need to offset by half its computed width and height
-    textMesh.position.x = -textWidth / 2;
-    textMesh.position.y = -textHeight / 2;
-    textMesh.position.z = 0.5; // Move text slightly forward
-
-    scene.add(textMesh);
 }
 
 function onWindowResize() {
