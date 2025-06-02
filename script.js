@@ -37,7 +37,7 @@ const model2Data = {
 
 // Configuration for animation parameters
 const animationConfig = {
-    NORMAL_ROTATION_SPEED: (3 * Math.PI) / 30, // Radians per second for idle rotation
+    NORMAL_ROTATION_SPEED: (3.3 * Math.PI) / 30, // Radians per second for idle rotation
     BOOST_ROTATION_MULTIPLIER: 70, // Multiplier for rotation speed during boost
     BOOST_DURATION: 1.0, // Duration of the rotation boost in seconds
     SCALE_DURATION: 1.0, // Duration of scaling animations (up and down) in seconds
@@ -73,7 +73,7 @@ function init() {
 
     // Camera setup
     camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    camera.position.z = 3; // Initial camera position
+    camera.position.z = 3.75; // Initial camera position
 
     // Renderer setup
     renderer = new THREE.WebGLRenderer({ antialias: true }); // Enable anti-aliasing for smoother edges
