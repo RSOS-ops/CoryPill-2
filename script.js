@@ -58,9 +58,17 @@ function init() {
     const ambientLight = new THREE.AmbientLight(0xffffff, 4.0); // Soft white light
     scene.add(ambientLight);
 
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 2.25); // Color updated
+const directionalLight = new THREE.DirectionalLight(0xffffff, 3.0); // Color updated
     directionalLight.position.set(5, 10, 7.5); // Positioned to the side and above
     scene.add(directionalLight);
+
+const directionalLight2 = new THREE.DirectionalLight(0xffffff, 3.0);
+directionalLight2.position.set(-5, -10, -7.5);
+scene.add(directionalLight2);
+
+const directionalLight3 = new THREE.DirectionalLight(0xffffff, 3.0);
+directionalLight3.position.set(0, 0, 5);
+scene.add(directionalLight3);
 
     // Event Listeners
     window.addEventListener('resize', onWindowResize, false);
