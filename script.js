@@ -9,8 +9,8 @@ const clock = new THREE.Clock();
 let isRotationBoostActive = false;
 let boostEndTime = 0;
 const NORMAL_ROTATION_SPEED = (2 * Math.PI) / 30; // Radians per second for 360 deg in 30s
-const BOOST_ROTATION_MULTIPLIER = 5;
-const BOOST_DURATION = 1.5; // seconds
+const BOOST_ROTATION_MULTIPLIER = 6; // Updated from 5 to 6
+const BOOST_DURATION = 2.0; // Updated from 1.5 to 2.0
 
 function init() {
     // Scene
