@@ -33,7 +33,7 @@ function init() {
 
     // GLTF Model Loading
     const gltfLoader = new GLTFLoader();
-    const modelUrl = 'https://raw.githubusercontent.com/RSOS-ops/CoryPill-2/7eb893d18a45859db5110cf113a0a94f1cb46bfd/CoryPill_GLTF.glb';
+    const modelUrl = 'https://raw.githubusercontent.com/RSOS-ops/CoryPill-2/9546cba51f73fd15218959e97c78098392a5b75d/CoryPill_StackedText-1.glb';
 
     gltfLoader.load(
         modelUrl,
