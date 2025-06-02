@@ -156,14 +156,15 @@ function animate() {
 
         if (scaleProgress >= 1.0) {
             scaleProgress = 1.0;
-            // Optionally, set isScalingDown = false if you don't want it to animate further once it reaches 0.
-            // However, allowing it to stay true and relying on click to reset scale is also fine.
-            // For now, we'll just cap progress. The click listener already handles reset.
+            isScalingDown = false; // Reset the flag once animation is complete
         }
 
         // Interpolate scale from initialScale to 0
         const currentProgressiveScale = 1.0 - scaleProgress;
-        gltfModel.scale.copy(initialScale).multiplyScalar(currentProgressiveScale);
+        // Explicitly set each component
+        gltfModel.scale.x = initialScale.x * currentProgressiveScale;
+        gltfModel.scale.y = initialScale.y * currentProgressiveScale;
+        gltfModel.scale.z = initialScale.z * currentProgressiveScale;
     }
 
     let currentRotationSpeed = NORMAL_ROTATION_SPEED; // Default to normal speed
