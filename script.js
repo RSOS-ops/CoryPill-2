@@ -50,10 +50,10 @@ function init() {
     document.body.appendChild(renderer.domElement);
 
     // Lighting
-    const ambientLight = new THREE.AmbientLight(0xffffff, 1.5); // Soft white light
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.8); // Soft white light
     scene.add(ambientLight);
 
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 2.5); // Color updated
+    const directionalLight = new THREE.DirectionalLight(0x8EC1E7, 0.7); // Color updated
     directionalLight.position.set(5, 10, 7.5); // Positioned to the side and above
     scene.add(directionalLight);
 
@@ -289,9 +289,17 @@ function animate() {
                 gltfModel2.scale.copy(initialScale2); // Ensure it's exactly at initial scale
                 isScalingUp2 = false;
                 console.log("Sequence 2 (model 2) complete: scaled up. Time:", elapsedTimeTotal);
-                // Optionally, set currentSequence = 0 here to return to idle.
-                // currentSequence = 0;
-                // console.log("Animation cycle complete, returning to idle state. Time:", elapsedTimeTotal);
+
+                // End-of-cycle logic: Reset to idle state
+                currentSequence = 0;
+                if (gltfModel1) {
+                    gltfModel1.visible = true;
+                    gltfModel1.scale.copy(initialScale1); // Ensure model1 is at its correct initial scale
+                }
+                if (gltfModel2) {
+                    gltfModel2.visible = false;
+                }
+                console.log("All sequences complete. Resetting to idle state. Model 1 visible, Model 2 hidden. Time:", elapsedTimeTotal);
             }
         }
     }
@@ -302,6 +310,17 @@ function animate() {
     //    gltfModel2.rotation.y += NORMAL_ROTATION_SPEED * deltaTime;
     // }
 
+    // --- Add Default Rotation for Model 1 ---
+    // This applies if currentSequence is 0 (idle) AND model1 is currently set to be visible.
+    // Note: visibility of model1 upon entering currentSequence = 0 will be handled by end-of-cycle logic.
+    if (gltfModel1 && currentSequence === 0 && gltfModel1.visible) {
+        // Ensure no boost is active if somehow isRotationBoostActive1 was true from a previous state.
+        // This is defensive coding; ideally, isRotationBoostActive1 should be false when currentSequence is 0.
+        if (isRotationBoostActive1) {
+            isRotationBoostActive1 = false;
+        }
+        gltfModel1.rotation.y += NORMAL_ROTATION_SPEED * deltaTime;
+    }
 
     renderer.render(scene, camera);
 }
