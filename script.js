@@ -82,7 +82,7 @@ function init() {
             // Calculate distance needed to fit the sphere's height (diameter) into 90% of FOV
             // The "height" of the object we want to fit is effectively its diameter for this purpose.
             // However, the formula tan(fov/2) = (H/2) / dist uses H/2 (which is radius).
-            const fitRadiusNet = radius / 0.9; // Effective radius for 90% fill (object appears larger)
+            const fitRadiusNet = radius / 0.7; // Effective radius for 70% fill (object appears larger)
             const distance = fitRadiusNet / Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
 
             camera.position.x = worldSphere.center.x; // Align camera X with model's geometric center X
@@ -91,7 +91,7 @@ function init() {
 
             camera.lookAt(worldSphere.center); // Look at the geometric center of the model
 
-            console.log('Camera position adjusted for 90% viewport fill.');
+            console.log('Camera position adjusted for 70% viewport fill.');
         },
         (xhr) => {
             // console.log((xhr.loaded / xhr.total * 100) + '% loaded');
