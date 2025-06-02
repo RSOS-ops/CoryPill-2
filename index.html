@@ -3,13 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cory Richard - three.js</title>
+    <meta name="description" content="An interactive 3D model viewer demo using Three.js, showcasing transitions between two models with animations and dynamic lighting.">
+    <title>Three.js Interactive 3D Model Viewer</title>
     <style>
         body { margin: 0; overflow: hidden; background-color: #000000; }
-        canvas { display: block; }
+        canvas { display: block; } /* Default behavior for canvas, good to have */
     </style>
 </head>
-<body>
+<body aria-label="Interactive 3D animation scene">
+    <!-- 
+        Import Map for Three.js Modules:
+        This allows us to use bare module specifiers like "three" and "three/addons/"
+        in script.js, and the browser will resolve them to the specified URLs.
+        This is a modern way to handle JavaScript modules directly in the browser
+        without needing a build step for this simple demo.
+    -->
     <script type="importmap">
         {
             "imports": {
