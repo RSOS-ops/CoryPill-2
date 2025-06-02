@@ -5,6 +5,13 @@ let scene, camera, renderer;
 let gltfModel;
 const clock = new THREE.Clock();
 
+// Variables for rotation boost effect
+let isRotationBoostActive = false;
+let boostEndTime = 0;
+const NORMAL_ROTATION_SPEED = (2 * Math.PI) / 30; // Radians per second for 360 deg in 30s
+const BOOST_ROTATION_MULTIPLIER = 5;
+const BOOST_DURATION = 1.5; // seconds
+
 function init() {
     // Scene
     scene = new THREE.Scene();
@@ -98,6 +105,17 @@ function init() {
         }
     );
 
+    // Event Listener for mouse click to boost rotation
+    window.addEventListener('click', () => {
+        if (!isRotationBoostActive) { // Optional: prevent re-triggering if already boosting, or let it restart
+            isRotationBoostActive = true;
+            boostEndTime = clock.elapsedTime + BOOST_DURATION;
+        } else {
+            // If already boosting, clicking again will restart the boost timer
+            boostEndTime = clock.elapsedTime + BOOST_DURATION;
+        }
+    }, false);
+
     animate();
 }
 
@@ -110,13 +128,21 @@ function onWindowResize() {
 function animate() {
     requestAnimationFrame(animate);
 
-    const deltaTime = clock.getDelta(); // Get time delta for frame-rate independence
+    const deltaTime = clock.getDelta();
+    let currentRotationSpeed = NORMAL_ROTATION_SPEED; // Default to normal speed
 
-    // Rotate GLTF model if it's loaded
+    if (isRotationBoostActive) {
+        if (clock.elapsedTime >= boostEndTime) {
+            isRotationBoostActive = false;
+            // currentRotationSpeed remains NORMAL_ROTATION_SPEED (implicitly set at the start of this block or explicitly here)
+            // No need to set currentRotationSpeed here as it's already normal by default
+        } else {
+            currentRotationSpeed = NORMAL_ROTATION_SPEED * BOOST_ROTATION_MULTIPLIER;
+        }
+    }
+
     if (gltfModel) {
-        // Target: 360 degrees (2 * Math.PI radians) every 30 seconds
-        const rotationSpeed = (2 * Math.PI) / 30; // Radians per second
-        gltfModel.rotation.y += rotationSpeed * deltaTime; // Apply rotation for the current frame
+        gltfModel.rotation.y += currentRotationSpeed * deltaTime;
     }
 
     renderer.render(scene, camera);
