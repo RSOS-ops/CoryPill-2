@@ -66,7 +66,7 @@ function init() {
             // The initialCenter was in model's local space. After scaling, its position
             // relative to the pivot is initialCenter.clone().multiplyScalar(scaleFactor).
             // To move this geometric center to world origin (0,0,0) and then to (0,0,-0.5):
-            const scaledCenterOffset = initialCenter.clone().multiplyScalar(scaleFactor);
+            const scaledCenterOffset = initialCenter.clone().multiplyScalar(finalScaleFactor);
             gltfModel.position.copy(scaledCenterOffset.negate()); // Move pivot so scaled geo center is at (0,0,0)
             gltfModel.position.z += -0.5; // Then shift the whole thing to target Z
 
