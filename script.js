@@ -4,20 +4,12 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 let scene, camera, renderer;
 const clock = new THREE.Clock();
 
-let newLightA = null;
-let newLightB = null;
-
-// --- Light Fading State Variables ---
-let fadingLightsOut = false; // True when Model 1 is clicked, lights for Model 1 fade out
-let fadingLightsIn = false;  // True when Model 2 is clicked, lights for Model 1 fade in
-let lightsFadeStartTime = 0;
-
 // --- Model 1 (gltfModel1) Variables ---
 let gltfModel1 = null; // Renamed from gltfModel
-const model1Url = 'https://raw.githubusercontent.com/RSOS-ops/CoryPill-2/main/bluehoodiecofus_dark.glb'; // Renamed from modelUrl
+const model1Url = 'https://raw.githubusercontent.com/RSOS-ops/CoryPill-2/main/ShadowedGaze-good-1.glb'; // Renamed from modelUrl
 let initialScale1 = new THREE.Vector3(1, 1, 1); // Renamed from initialScale
-let isRotationBoostActive1 = false; 
-let boostEndTime1 = 0; 
+let isRotationBoostActive1 = false;
+let boostEndTime1 = 0;
 let isScalingDown1 = false; // For Seq A (Model 1 scales down)
 let scaleStartTime1 = 0;   // For Seq A
 let isScalingUp1 = false;    // For Seq D (Model 1 scales up)
@@ -27,8 +19,8 @@ let scaleStartTimeUp1 = 0; // For Seq D
 let gltfModel2 = null;
 const model2Url = 'https://raw.githubusercontent.com/RSOS-ops/CoryPill-2/main/CoryPill_StackedText-Centrd.glb';
 let initialScale2 = new THREE.Vector3(1, 1, 1);
-let isRotationBoostActive2 = false; 
-let boostEndTime2 = 0;             
+let isRotationBoostActive2 = false;
+let boostEndTime2 = 0;
 let isScalingUp2 = false;    // For Seq B (Model 2 scales up)
 let scaleStartTime2 = 0;   // For Seq B
 let isScalingDown2 = false;  // For Seq C (Model 2 scales down)
@@ -36,12 +28,10 @@ let scaleStartTimeDown2 = 0; // For Seq C
 
 
 // --- General Animation & State Variables ---
-const NORMAL_ROTATION_SPEED = (2 * Math.PI) / 30; // Radians per second
-const BOOST_ROTATION_MULTIPLIER = 80;
+const NORMAL_ROTATION_SPEED = (3 * Math.PI) / 30; // Radians per second
+const BOOST_ROTATION_MULTIPLIER = 70;
 const BOOST_DURATION = 1.0; // Updated duration
 const SCALE_DURATION = 1.0; // Updated duration for both scaling down and up
-const NEW_LIGHTS_MAX_INTENSITY = 3.0;
-const LIGHT_FADE_DURATION = 1.0; // Duration for light fade, e.g., 1 second
 
 // --- Cyclical Interaction State Variables ---
 let activeModelIdentifier = 1; // 1 for gltfModel1, 2 for gltfModel2
@@ -55,7 +45,7 @@ function init() {
 
     // Camera
     camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    camera.position.z = 2; // Adjust camera position to view the text
+    camera.position.z = 3; // Adjust camera position to view the text
 
     // Renderer
     renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -65,31 +55,12 @@ function init() {
     document.body.appendChild(renderer.domElement);
 
     // Lighting
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.8); // Soft white light
+    const ambientLight = new THREE.AmbientLight(0xffffff, 4.0); // Soft white light
     scene.add(ambientLight);
 
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.7); // Color updated
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 2.25); // Color updated
     directionalLight.position.set(5, 10, 7.5); // Positioned to the side and above
     scene.add(directionalLight);
-
-    // New Light A (targets center of Model 1)
-    newLightA = new THREE.DirectionalLight(0xffffff, NEW_LIGHTS_MAX_INTENSITY);
-    newLightA.position.set(-5, 3, 5);
-    newLightA.target.position.set(0, 0, -0.5); // Model 1's center is at (0,0,-0.5) after recentering
-    scene.add(newLightA);
-    scene.add(newLightA.target);
-
-    // New Light B (targets approx top-left of Model 1)
-    // Assuming Model 1, when normalized to 1.0 max dimension, might have its top-left around x=-0.25, y=0.25 relative to its own center.
-    // Its own center is (0,0,-0.5). So world target might be (-0.25, 0.25, -0.5)
-    // However, the prompt specifies top-left as (-0.25, 0.0, -0.5) - this seems more like mid-left. Using as specified.
-    newLightB = new THREE.DirectionalLight(0xffffff, NEW_LIGHTS_MAX_INTENSITY);
-    newLightB.position.set(5, 8, 0); // Coming from positive X, somewhat above, and from Z=0
-    newLightB.target.position.set(-0.25, 0.0, -0.5); 
-    scene.add(newLightB);
-    scene.add(newLightB.target);
-
-    console.log("Added two new dynamic directional lights (A and B).");
 
     // Event Listeners
     window.addEventListener('resize', onWindowResize, false);
@@ -117,7 +88,7 @@ function init() {
             const scaledCenterOffset = initialCenter.clone().multiplyScalar(scaleFactor);
             gltfModel1.position.copy(scaledCenterOffset.negate());
             gltfModel1.position.z += -0.5;
-            
+
             // Store the initial scale after normalization
             initialScale1.copy(gltfModel1.scale);
             gltfModel1.visible = true; // Explicitly set initial visibility
@@ -129,7 +100,7 @@ function init() {
             const currentWorldBox = new THREE.Box3().setFromObject(gltfModel1);
             const worldSphere = currentWorldBox.getBoundingSphere(new THREE.Sphere());
             const radius = worldSphere.radius;
-            const fitRadiusNet = radius / 0.9; 
+            const fitRadiusNet = radius / 0.9;
             const distance = fitRadiusNet / Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
             camera.position.x = worldSphere.center.x;
             camera.position.y = worldSphere.center.y;
@@ -182,7 +153,7 @@ function init() {
             console.error('Error loading GLTF model 2:', error);
             const errorDiv = document.createElement('div');
             // Customize error message/display for model 2 if needed
-            errorDiv.textContent = "3D Model 2 Load Error"; 
+            errorDiv.textContent = "3D Model 2 Load Error";
             document.body.appendChild(errorDiv);
         }
     );
@@ -220,13 +191,8 @@ function init() {
             awaitingModel2Visibility = true;
             awaitingModel1Visibility = false;
 
-            // Light animation flags
-            fadingLightsOut = true;
-            fadingLightsIn = false;
-            lightsFadeStartTime = clickTime;
-
             // Reset states for Model 2
-            isScalingUp2 = false; 
+            isScalingUp2 = false;
             isScalingDown2 = false;
             isRotationBoostActive2 = false;
             if (gltfModel2) gltfModel2.visible = false;
@@ -249,17 +215,12 @@ function init() {
             awaitingModel1Visibility = true;
             awaitingModel2Visibility = false;
 
-            // Light animation flags
-            fadingLightsIn = true;
-            fadingLightsOut = false;
-            lightsFadeStartTime = clickTime;
-
             // Reset states for Model 1
             isScalingUp1 = false;
-            isScalingDown1 = false; 
+            isScalingDown1 = false;
             isRotationBoostActive1 = false;
             if (gltfModel1) gltfModel1.visible = false;
-            
+
         } else {
             // This case should ideally not be reached if activeModelIdentifier is managed correctly.
             // Defaulting to Model 1's sequence start.
@@ -281,11 +242,6 @@ function init() {
             isScalingDown2 = false;
             isRotationBoostActive2 = false;
             if (gltfModel2) gltfModel2.visible = false;
-            
-            // Reset light flags for this default case too
-            fadingLightsOut = true; 
-            fadingLightsIn = false;
-            lightsFadeStartTime = clickTime;
         }
     }, false);
 
@@ -434,37 +390,6 @@ function animate() {
             boostEndTime1 = elapsedTimeTotal + BOOST_DURATION;
         }
         awaitingModel1Visibility = false;
-    }
-
-    // Light Fading Logic
-    if (newLightA && newLightB) { // Check if lights are initialized
-        if (fadingLightsOut) {
-            const fadeElapsedTime = elapsedTimeTotal - lightsFadeStartTime;
-            if (fadeElapsedTime < LIGHT_FADE_DURATION) {
-                const progress = fadeElapsedTime / LIGHT_FADE_DURATION;
-                const currentIntensity = NEW_LIGHTS_MAX_INTENSITY * (1.0 - progress);
-                newLightA.intensity = currentIntensity;
-                newLightB.intensity = currentIntensity;
-            } else {
-                newLightA.intensity = 0.0;
-                newLightB.intensity = 0.0;
-                fadingLightsOut = false;
-                console.log("New lights faded out. Time:", elapsedTimeTotal);
-            }
-        } else if (fadingLightsIn) { 
-            const fadeElapsedTime = elapsedTimeTotal - lightsFadeStartTime;
-            if (fadeElapsedTime < LIGHT_FADE_DURATION) {
-                const progress = fadeElapsedTime / LIGHT_FADE_DURATION;
-                const currentIntensity = NEW_LIGHTS_MAX_INTENSITY * progress;
-                newLightA.intensity = currentIntensity;
-                newLightB.intensity = currentIntensity;
-            } else {
-                newLightA.intensity = NEW_LIGHTS_MAX_INTENSITY;
-                newLightB.intensity = NEW_LIGHTS_MAX_INTENSITY;
-                fadingLightsIn = false;
-                console.log("New lights faded in. Time:", elapsedTimeTotal);
-            }
-        }
     }
 
     renderer.render(scene, camera);
