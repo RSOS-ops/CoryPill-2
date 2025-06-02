@@ -29,7 +29,7 @@ let scaleStartTimeDown2 = 0; // For Seq C
 
 // --- General Animation & State Variables ---
 const NORMAL_ROTATION_SPEED = (3 * Math.PI) / 30; // Radians per second
-const BOOST_ROTATION_MULTIPLIER = 80;
+const BOOST_ROTATION_MULTIPLIER = 70;
 const BOOST_DURATION = 1.0; // Updated duration
 const SCALE_DURATION = 1.0; // Updated duration for both scaling down and up
 
@@ -58,7 +58,7 @@ function init() {
     const ambientLight = new THREE.AmbientLight(0xffffff, 1.2); // Soft white light
     scene.add(ambientLight);
 
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 2.75); // Color updated
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 2.25); // Color updated
     directionalLight.position.set(5, 10, 7.5); // Positioned to the side and above
     scene.add(directionalLight);
 
