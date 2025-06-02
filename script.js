@@ -4,6 +4,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 let scene, camera, renderer;
 let gltfModel;
 const clock = new THREE.Clock();
+let initialScale = new THREE.Vector3(1, 1, 1); // Default initial scale
 
 // Variables for rotation boost effect
 let isRotationBoostActive = false;
@@ -11,6 +12,11 @@ let boostEndTime = 0;
 const NORMAL_ROTATION_SPEED = (2 * Math.PI) / 30; // Radians per second for 360 deg in 30s
 const BOOST_ROTATION_MULTIPLIER =80;
 const BOOST_DURATION = .5; // seconds
+
+// Variables for scaling animation
+let isScalingDown = false;
+let scaleStartTime = 0;
+const SCALE_DURATION = 0.5; // seconds
 
 function init() {
     // Scene
@@ -65,6 +71,9 @@ function init() {
             gltfModel.position.copy(scaledCenterOffset.negate()); // Move pivot so scaled geo center is at (0,0,0)
             gltfModel.position.z += -0.5; // Then shift the whole thing to target Z
 
+            // Store the initial scale after normalization
+            initialScale.copy(gltfModel.scale);
+
             scene.add(gltfModel);
             console.log('GLTF model loaded, scaled, and positioned with geometric center at (0,0,-0.5).');
 
@@ -105,14 +114,24 @@ function init() {
         }
     );
 
-    // Event Listener for mouse click to boost rotation
+    // Event Listener for mouse click to boost rotation and trigger scaling
     window.addEventListener('click', () => {
-        if (!isRotationBoostActive) { // Optional: prevent re-triggering if already boosting, or let it restart
+        // Rotation boost logic
+        if (!isRotationBoostActive) {
             isRotationBoostActive = true;
             boostEndTime = clock.elapsedTime + BOOST_DURATION;
         } else {
-            // If already boosting, clicking again will restart the boost timer
             boostEndTime = clock.elapsedTime + BOOST_DURATION;
+        }
+
+        // Scaling animation logic
+        if (gltfModel) { // Ensure model is loaded
+            if (isScalingDown) {
+                // If already scaling down, reset to initial scale to restart animation
+                gltfModel.scale.copy(initialScale);
+            }
+            isScalingDown = true;
+            scaleStartTime = clock.elapsedTime;
         }
     }, false);
 
@@ -143,6 +162,23 @@ function animate() {
 
     if (gltfModel) {
         gltfModel.rotation.y += currentRotationSpeed * deltaTime;
+
+        // Scaling animation
+        if (isScalingDown) {
+            const elapsedTime = clock.elapsedTime - scaleStartTime;
+            if (elapsedTime < SCALE_DURATION) {
+                const scaleProgress = elapsedTime / SCALE_DURATION;
+                const currentScale = 1 - scaleProgress;
+                gltfModel.scale.set(
+                    initialScale.x * currentScale,
+                    initialScale.y * currentScale,
+                    initialScale.z * currentScale
+                );
+            } else {
+                gltfModel.scale.set(0, 0, 0); // Ensure it's fully scaled down
+                isScalingDown = false;
+            }
+        }
     }
 
     renderer.render(scene, camera);
