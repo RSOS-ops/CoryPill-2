@@ -6,7 +6,7 @@ const clock = new THREE.Clock();
 
 // --- Model 1 (gltfModel1) Variables ---
 let gltfModel1 = null; // Renamed from gltfModel
-const model1Url = 'https://raw.githubusercontent.com/RSOS-ops/CoryPill-2/main/ShadowedGaze-good-1.glb'; // Renamed from modelUrl
+const model1Url = 'https://raw.githubusercontent.com/RSOS-ops/CoryPill-2/main/bluehoodiecofus_dark.glb'; // Renamed from modelUrl
 let initialScale1 = new THREE.Vector3(1, 1, 1); // Renamed from initialScale
 let isRotationBoostActive1 = false;
 let boostEndTime1 = 0;
