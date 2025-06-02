@@ -1,21 +1,15 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { DRACOLoader } from three/addons/loaders/DRACOLoader.js;
 
 let scene, camera, renderer;
 let gltfModel;
 const clock = new THREE.Clock();
 
-let initialScale = new THREE.Vector3(1, 1, 1); // Default, will be updated
-let isScalingDown = false;
-let scaleDownStartTime = 0;
-const SCALE_DOWN_DURATION = 1.0; // 1 second
-
 // Variables for rotation boost effect
 let isRotationBoostActive = false;
 let boostEndTime = 0;
 const NORMAL_ROTATION_SPEED = (2 * Math.PI) / 30; // Radians per second for 360 deg in 30s
-const BOOST_ROTATION_MULTIPLIER =100;
+const BOOST_ROTATION_MULTIPLIER =80;
 const BOOST_DURATION = .5; // seconds
 
 function init() {
@@ -24,7 +18,7 @@ function init() {
 
     // Camera
     camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    camera.position.z = 2; // Adjust camera position to view the text
+    camera.position.z = 3; // Adjust camera position to view the text
 
     // Renderer
     renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -46,10 +40,7 @@ function init() {
 
     // GLTF Model Loading
     const gltfLoader = new GLTFLoader();
-    const dracoLoader = new DRACOLoader();
-    dracoLoader.setDecoderPath("https://www.gstatic.com/draco/versioned/decoders/1.5.6/");
-    gltfLoader.setDRACOLoader(dracoLoader);
-    const modelUrl = "CoryPill_StackedText-Centrd.glb"; // Updated to local optimized model
+    const modelUrl = 'https://raw.githubusercontent.com/RSOS-ops/CoryPill-2/7e7b5814346dc08cb3b8b0788a9d8652502c72c8/CoryPill_StackedText-1.glb';
 
     gltfLoader.load(
         modelUrl,
@@ -64,15 +55,13 @@ function init() {
             // 2. Determine scale factor to normalize max dimension to 1.0
             const maxDim = Math.max(initialSize.x, initialSize.y, initialSize.z);
             const scaleFactor = (maxDim > 0) ? 1.0 / maxDim : 1.0;
-            const finalScaleFactor = scaleFactor * 0.67; // Apply 33% reduction
-            gltfModel.scale.set(finalScaleFactor, finalScaleFactor, finalScaleFactor);
-            initialScale.copy(gltfModel.scale);
+            gltfModel.scale.set(scaleFactor, scaleFactor, scaleFactor);
 
             // 3. Position model so its GEOMETRIC center is at (0,0,-0.5)
             // The initialCenter was in model's local space. After scaling, its position
             // relative to the pivot is initialCenter.clone().multiplyScalar(scaleFactor).
             // To move this geometric center to world origin (0,0,0) and then to (0,0,-0.5):
-            const scaledCenterOffset = initialCenter.clone().multiplyScalar(finalScaleFactor);
+            const scaledCenterOffset = initialCenter.clone().multiplyScalar(scaleFactor);
             gltfModel.position.copy(scaledCenterOffset.negate()); // Move pivot so scaled geo center is at (0,0,0)
             gltfModel.position.z += -0.5; // Then shift the whole thing to target Z
 
@@ -88,7 +77,7 @@ function init() {
             // Calculate distance needed to fit the sphere's height (diameter) into 90% of FOV
             // The "height" of the object we want to fit is effectively its diameter for this purpose.
             // However, the formula tan(fov/2) = (H/2) / dist uses H/2 (which is radius).
-            const fitRadiusNet = radius / 0.7; // Effective radius for 70% fill (object appears larger)
+            const fitRadiusNet = radius / 0.9; // Effective radius for 90% fill (object appears larger)
             const distance = fitRadiusNet / Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
 
             camera.position.x = worldSphere.center.x; // Align camera X with model's geometric center X
@@ -97,7 +86,7 @@ function init() {
 
             camera.lookAt(worldSphere.center); // Look at the geometric center of the model
 
-            console.log('Camera position adjusted for 70% viewport fill.');
+            console.log('Camera position adjusted for 90% viewport fill.');
         },
         (xhr) => {
             // console.log((xhr.loaded / xhr.total * 100) + '% loaded');
@@ -118,14 +107,6 @@ function init() {
 
     // Event Listener for mouse click to boost rotation
     window.addEventListener('click', () => {
-        // Start or restart scale down animation
-        isScalingDown = true;
-        scaleDownStartTime = clock.elapsedTime;
-        if (gltfModel) { // Ensure gltfModel is loaded
-            gltfModel.scale.copy(initialScale); // Reset to initial scale before starting animation
-        }
-
-        // Rotation boost logic (existing)
         if (!isRotationBoostActive) { // Optional: prevent re-triggering if already boosting, or let it restart
             isRotationBoostActive = true;
             boostEndTime = clock.elapsedTime + BOOST_DURATION;
@@ -148,25 +129,6 @@ function animate() {
     requestAnimationFrame(animate);
 
     const deltaTime = clock.getDelta();
-
-    // Handle scaling down animation
-    if (isScalingDown && gltfModel) {
-        const elapsedTime = clock.elapsedTime - scaleDownStartTime;
-        let scaleProgress = elapsedTime / SCALE_DOWN_DURATION;
-
-        if (scaleProgress >= 1.0) {
-            scaleProgress = 1.0;
-            isScalingDown = false; // Reset the flag once animation is complete
-        }
-
-        // Interpolate scale from initialScale to 0
-        const currentProgressiveScale = 1.0 - scaleProgress;
-        // Explicitly set each component
-        gltfModel.scale.x = initialScale.x * currentProgressiveScale;
-        gltfModel.scale.y = initialScale.y * currentProgressiveScale;
-        gltfModel.scale.z = initialScale.z * currentProgressiveScale;
-    }
-
     let currentRotationSpeed = NORMAL_ROTATION_SPEED; // Default to normal speed
 
     if (isRotationBoostActive) {
