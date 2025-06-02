@@ -18,7 +18,7 @@ function init() {
 
     // Camera
     camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    camera.position.z = 3; // Adjust camera position to view the text
+    camera.position.z = 2; // Adjust camera position to view the text
 
     // Renderer
     renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -31,7 +31,7 @@ function init() {
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.8); // Soft white light
     scene.add(ambientLight);
 
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.7); // Color updated
+    const directionalLight = new THREE.DirectionalLight(0x8EC1E7, 0.7); // Color updated
     directionalLight.position.set(5, 10, 7.5); // Positioned to the side and above
     scene.add(directionalLight);
 
@@ -40,7 +40,7 @@ function init() {
 
     // GLTF Model Loading
     const gltfLoader = new GLTFLoader();
-    const modelUrl = 'https://raw.githubusercontent.com/RSOS-ops/CoryPill-2/main/ShadowedGaze-good-1.glb';
+    const modelUrl = 'https://raw.githubusercontent.com/RSOS-ops/CoryPill-2/7e7b5814346dc08cb3b8b0788a9d8652502c72c8/CoryPill_StackedText-1.glb';
 
     gltfLoader.load(
         modelUrl,
