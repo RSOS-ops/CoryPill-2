@@ -457,21 +457,9 @@ function animateModel(modelData, deltaTime, elapsedTimeTotal) {
         if (animElapsedTime < animationConfig.SCALE_DURATION) {
             const scaleProgress = animElapsedTime / animationConfig.SCALE_DURATION; // Progress from 0 to 1
 
-            // Calculate slerped orientation
-            const slerpTargetQuaternion = new THREE.Quaternion(); // Target world orientation (0,0,0)
-            if (modelData.initialQuaternionDuringScaleUp) { // Ensure initialQuaternion is available
-                modelData.gltfModel.quaternion.copy(modelData.initialQuaternionDuringScaleUp).slerp(slerpTargetQuaternion, scaleProgress);
-            } else {
-                // Fallback if initialQuaternionDuringScaleUp was somehow not set (should not happen with current logic)
-                modelData.gltfModel.quaternion.slerp(slerpTargetQuaternion, scaleProgress);
-            }
-
-            // Apply additional local Y-axis boosted spin
-            if (modelData.isRotationBoostActive && elapsedTimeTotal < modelData.boostEndTime) {
-                const boostSpinAmount = (animationConfig.NORMAL_ROTATION_SPEED * animationConfig.BOOST_ROTATION_MULTIPLIER) * deltaTime;
-                modelData.gltfModel.rotateY(boostSpinAmount); // Rotates around the object's local Y-axis
-            } else if (modelData.isRotationBoostActive) {
-                modelData.isRotationBoostActive = false; // Boost time ended
+            const targetQuaternion = new THREE.Quaternion(); // Identity quaternion (0,0,0 rotation)
+            if (modelData.initialQuaternionDuringScaleUp) {
+                modelData.gltfModel.quaternion.copy(modelData.initialQuaternionDuringScaleUp).slerp(targetQuaternion, scaleProgress);
             }
             // Scale factor from 0 up to 1 (based on initialScale)
             modelData.gltfModel.scale.set(
@@ -485,7 +473,6 @@ function animateModel(modelData, deltaTime, elapsedTimeTotal) {
             modelData.isScalingUp = false; // Reset flag
             modelData.gltfModel.rotation.set(0, 0, 0); // Set final rotation to (0,0,0)
             modelData.initialQuaternionDuringScaleUp = null; // Reset for next use
-            modelData.isRotationBoostActive = false; // Ensure boost is off
 
             // Post-scaling up: Update active model identifier and set appropriate light intensities
             // This is now handled by the state machine in the main animate() function upon transitioning to IDLE states.
@@ -541,4 +528,4 @@ function updateModelAnimations(deltaTime, elapsedTimeTotal) {
 }
 
 // Start the application by calling the main initialization function
-init();
+init(); 
