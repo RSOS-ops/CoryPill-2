@@ -72,8 +72,8 @@ function init() {
     scene = new THREE.Scene();
 
     // Camera setup
-    camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    camera.position.z = 3; // Initial camera position
+    camera = new THREE.PerspectiveCamera(90, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.z = 2; // Initial camera position
 
     // Renderer setup
     renderer = new THREE.WebGLRenderer({ antialias: true }); // Enable anti-aliasing for smoother edges
