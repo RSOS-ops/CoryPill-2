@@ -10,7 +10,7 @@ const clock = new THREE.Clock();
 // Holds all data related to the first 3D model
 const model1Data = {
     gltfModel: null, // The Three.js object for the model
-    modelUrl: 'https://raw.githubusercontent.com/RSOS-ops/CoryPill-2/main/HoodedCory_Planar3.glb', // URL to load the GLB/GLTF file
+    modelUrl: 'https://raw.githubusercontent.com/RSOS-ops/CoryPill-2/main/HoodedCory_PlanarFace.glb', // URL to load the GLB/GLTF file
     initialScale: new THREE.Vector3(1, 1, 1), // Initial scale after normalization
     initialQuaternionDuringScaleUp: null,
     isRotationBoostActive: false, // Flag for rotation speed boost
@@ -312,7 +312,7 @@ function animate() {
                     model2Data.gltfModel.visible = true;
                     model2Data.gltfModel.scale.set(0, 0, 0);
                     model2Data.isScalingUp = true;
-                    model2Data.initialQuaternionDuringScaleUp = null; 
+                    model2Data.initialQuaternionDuringScaleUp = null;
                     model2Data.scaleStartTime = elapsedTimeTotal;
                     model2Data.isRotationBoostActive = true;
                     model2Data.boostEndTime = elapsedTimeTotal + animationConfig.BOOST_DURATION;
@@ -338,7 +338,7 @@ function animate() {
                     model1Data.gltfModel.visible = true;
                     model1Data.gltfModel.scale.set(0, 0, 0);
                     model1Data.isScalingUp = true;
-                    model1Data.initialQuaternionDuringScaleUp = null; 
+                    model1Data.initialQuaternionDuringScaleUp = null;
                     model1Data.scaleStartTimeUp = elapsedTimeTotal;
                     model1Data.isRotationBoostActive = true;
                     model1Data.boostEndTime = elapsedTimeTotal + animationConfig.BOOST_DURATION;
