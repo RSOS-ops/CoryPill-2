@@ -19,6 +19,8 @@ const model1Data = {
     scaleStartTime: 0, // Timestamp when scaling down animation started (Seq A for Model 1)
     isScalingUp: false, // Flag for scaling up animation
     scaleStartTimeUp: 0, // Timestamp when scaling up animation started (Seq D for Model 1)
+    mixer: null, // Animation mixer for Model 1
+    animations: [], // Animations for Model 1
 };
 
 // Holds all data related to the second 3D model
@@ -257,6 +259,21 @@ function loadGLTFModel(modelDataObj, isInitiallyVisible, onLoadedCallback) {
             scene.add(model); // Add the processed model to the main scene
             console.log(`GLTF model loaded from ${modelDataObj.modelUrl}, scaled, positioned, and set to visible: ${isInitiallyVisible}.`);
 
+            // Store animations
+            modelDataObj.animations = gltf.animations;
+
+            // If this is model1Data and it has animations, set up the mixer and play the first animation
+            if (modelDataObj === model1Data && modelDataObj.animations && modelDataObj.animations.length > 0) {
+                modelDataObj.mixer = new THREE.AnimationMixer(model);
+                const clip = modelDataObj.animations[0];
+                if (clip) {
+                    const action = modelDataObj.mixer.clipAction(clip);
+                    action.loop = THREE.LoopRepeat;
+                    action.play();
+                    console.log("Playing animation for Model 1:", clip.name);
+                }
+            }
+
             // Execute the callback, if provided, passing the loaded model and its normalized scale
             if (onLoadedCallback) {
                 onLoadedCallback(model, calculatedInitialScale);
@@ -418,6 +435,11 @@ function updateLightAnimations(elapsedTimeTotal) {
  * @param {boolean} isActiveModelCurrently - REMOVED as currentSequenceState is now the source of truth.
  */
 function animateModel(modelData, deltaTime, elapsedTimeTotal) {
+    // Update animation mixer if it exists and model is visible
+    if (modelData.mixer && modelData.gltfModel && modelData.gltfModel.visible) {
+        modelData.mixer.update(deltaTime);
+    }
+
     if (!modelData.gltfModel) return; // Exit if the model isn't loaded yet
 
     // --- Scaling Down Logic ---
