@@ -23,20 +23,6 @@ const model1Data = {
     animations: [], // Animations for Model 1
 };
 
-// Holds all data related to the second 3D model
-const model2Data = {
-    gltfModel: null, // The Three.js object for the model
-    modelUrl: 'https://raw.githubusercontent.com/RSOS-ops/CoryPill-2/main/CoryPill_StackedText-Centrd.glb', // URL to load the GLB/GLTF file
-    initialScale: new THREE.Vector3(1, 1, 1), // Initial scale after normalization
-    initialQuaternionDuringScaleUp: null,
-    isRotationBoostActive: false, // Flag for rotation speed boost
-    boostEndTime: 0, // Timestamp when rotation boost ends
-    isScalingUp: false, // Flag for scaling up animation (Seq B for Model 2)
-    scaleStartTime: 0, // Timestamp when scaling up animation started
-    isScalingDown: false, // Flag for scaling down animation (Seq C for Model 2)
-    scaleStartTimeDown: 0, // Timestamp when scaling down animation started
-};
-
 // Configuration for animation parameters
 const animationConfig = {
     NORMAL_ROTATION_SPEED: (3.3 * Math.PI) / 30, // Radians per second for idle rotation
@@ -48,23 +34,23 @@ const animationConfig = {
 
 // --- Global Animation State Variables ---
 // These control the fading animations of the secondary lights (newLight1, newLight2)
-let isFadingOutLights = false; // Flag for fading out newLight1 and newLight2
-let lightsFadeStartTime = 0;   // Timestamp when light fade-out started
-let isFadingInLights = false;  // Flag for fading in newLight1 and newLight2
-let lightsFadeInStartTime = 0; // Timestamp when light fade-in should start
+// let isFadingOutLights = false; // Flag for fading out newLight1 and newLight2
+// let lightsFadeStartTime = 0;   // Timestamp when light fade-out started
+// let isFadingInLights = false;  // Flag for fading in newLight1 and newLight2
+// let lightsFadeInStartTime = 0; // Timestamp when light fade-in should start
 
 // --- Sequence State Management ---
-const SEQUENCE_STATES = {
-    SEQUENCE_1_IDLE: 'SEQUENCE_1_IDLE', // Model 1 is visible and idle
-    SEQUENCE_1_START_TRANSITION_AWAY: 'SEQUENCE_1_START_TRANSITION_AWAY', // Model 1 is scaling down
-    SEQUENCE_1_COMPLETE_TRANSITION_TO_2: 'SEQUENCE_1_COMPLETE_TRANSITION_TO_2', // Model 2 is scaling up
-    SEQUENCE_2_IDLE: 'SEQUENCE_2_IDLE', // Model 2 is visible and idle
-    SEQUENCE_2_START_TRANSITION_AWAY: 'SEQUENCE_2_START_TRANSITION_AWAY', // Model 2 is scaling down
-    SEQUENCE_2_COMPLETE_TRANSITION_TO_1: 'SEQUENCE_2_COMPLETE_TRANSITION_TO_1', // Model 1 is scaling up
-};
-let currentSequenceState = SEQUENCE_STATES.SEQUENCE_1_IDLE; // Initial state
+// const SEQUENCE_STATES = {
+//     SEQUENCE_1_IDLE: 'SEQUENCE_1_IDLE', // Model 1 is visible and idle
+//     SEQUENCE_1_START_TRANSITION_AWAY: 'SEQUENCE_1_START_TRANSITION_AWAY', // Model 1 is scaling down
+//     SEQUENCE_1_COMPLETE_TRANSITION_TO_2: 'SEQUENCE_1_COMPLETE_TRANSITION_TO_2', // Model 2 is scaling up
+//     SEQUENCE_2_IDLE: 'SEQUENCE_2_IDLE', // Model 2 is visible and idle
+//     SEQUENCE_2_START_TRANSITION_AWAY: 'SEQUENCE_2_START_TRANSITION_AWAY', // Model 2 is scaling down
+//     SEQUENCE_2_COMPLETE_TRANSITION_TO_1: 'SEQUENCE_2_COMPLETE_TRANSITION_TO_1', // Model 1 is scaling up
+// };
+// let currentSequenceState = SEQUENCE_STATES.SEQUENCE_1_IDLE; // Initial state
 // activeModelIdentifier is removed, currentSequenceState will be the source of truth.
-let clickTime = 0; // Timestamp of the last click, used to time animation sequences
+// let clickTime = 0; // Timestamp of the last click, used to time animation sequences
 
 /**
  * Initializes the THREE.js scene, camera, renderer, lights, and loads models.
@@ -94,14 +80,14 @@ function init() {
     scene.add(directionalLight);
 
     // Secondary directional light 1, fades in/out
-    newLight1 = new THREE.DirectionalLight(0xffffff, 5.0);
+    newLight1 = new THREE.DirectionalLight(0xffffff, 0.0); // Set initial intensity to 0
     newLight1.position.set(-5, -10, -7.5); // Positioned from another angle
-    scene.add(newLight1);
+    // scene.add(newLight1); // Do not add to scene
 
     // Secondary directional light 2, fades in/out
-    newLight2 = new THREE.DirectionalLight(0xffffff, 5.0);
+    newLight2 = new THREE.DirectionalLight(0xffffff, 0.0); // Set initial intensity to 0
     newLight2.position.set(0, 0, 5); // Positioned from yet another angle
-    scene.add(newLight2);
+    // scene.add(newLight2); // Do not add to scene
 
     // Event Listeners
     window.addEventListener('resize', onWindowResize, false); // Handle window resize events
@@ -129,82 +115,13 @@ function init() {
         console.log('Camera position adjusted for model 1.');
     });
 
-    // Load the second model, initially hidden
-    loadGLTFModel(model2Data, false, (loadedModel, calculatedInitialScale) => {
-        model2Data.gltfModel = loadedModel;
-        model2Data.initialScale.copy(calculatedInitialScale);
-    });
-
-
-    // Event Listener for mouse click to swap models
+    // Event Listener for mouse click
     window.addEventListener('click', () => {
-        // Ignore clicks if models aren't loaded yet or if a transition is already in progress
-        if (!model1Data.gltfModel || !model2Data.gltfModel ||
-            (currentSequenceState !== SEQUENCE_STATES.SEQUENCE_1_IDLE && currentSequenceState !== SEQUENCE_STATES.SEQUENCE_2_IDLE)) {
-            console.log("Models not loaded or transition in progress. Click ignored. State:", currentSequenceState);
+        if (!model1Data.gltfModel) {
+            console.log("Model 1 not loaded yet. Click ignored.");
             return;
         }
-
-        clickTime = clock.elapsedTime; // Record click time for animation sequencing
-
-        if (currentSequenceState === SEQUENCE_STATES.SEQUENCE_1_IDLE) {
-            console.log("Click: SEQUENCE_1_IDLE. Initiating transition from Sequence 1 to Sequence 2. Time:", clickTime);
-            currentSequenceState = SEQUENCE_STATES.SEQUENCE_1_START_TRANSITION_AWAY;
-
-            // Setup Model 1 (associated with Sequence 1) for scaling down
-            model1Data.gltfModel.scale.copy(model1Data.initialScale);
-            model1Data.gltfModel.visible = true;
-            model1Data.isScalingDown = true;
-            model1Data.scaleStartTime = clickTime;
-            model1Data.isRotationBoostActive = true;
-            model1Data.boostEndTime = clickTime + animationConfig.BOOST_DURATION;
-            model1Data.isScalingUp = false;
-
-            // Reset Model 2's animation states
-            model2Data.isScalingUp = false;
-            model2Data.isScalingDown = false;
-            model2Data.isRotationBoostActive = false;
-            if (model2Data.gltfModel) model2Data.gltfModel.visible = false;
-
-            // Lights: Fade out secondary lights as Model 1 (Sequence 1) transitions away, preparing for Model 2 (part of Sequence 1 completion)
-            if (directionalLight) directionalLight.intensity = 5.0; // Keep main light for Model 1 during its scale out
-            if (newLight1 && newLight2) {
-                newLight1.intensity = 5.0; // Start fade from full
-                newLight2.intensity = 5.0;
-                isFadingOutLights = true;
-                lightsFadeStartTime = clickTime; // Start fade immediately
-                isFadingInLights = false;
-            }
-        } else if (currentSequenceState === SEQUENCE_STATES.SEQUENCE_2_IDLE) {
-            console.log("Click: SEQUENCE_2_IDLE. Initiating transition from Sequence 2 to Sequence 1. Time:", clickTime);
-            currentSequenceState = SEQUENCE_STATES.SEQUENCE_2_START_TRANSITION_AWAY;
-
-            // Setup Model 2 (associated with Sequence 2) for scaling down
-            model2Data.gltfModel.scale.copy(model2Data.initialScale);
-            model2Data.gltfModel.visible = true;
-            model2Data.isScalingDown = true;
-            model2Data.scaleStartTimeDown = clickTime;
-            model2Data.isRotationBoostActive = true;
-            model2Data.boostEndTime = clickTime + animationConfig.BOOST_DURATION;
-            model2Data.isScalingUp = false;
-
-            // Reset Model 1's animation states
-            model1Data.isScalingUp = false;
-            model1Data.isScalingDown = false;
-            model1Data.isRotationBoostActive = false;
-            if (model1Data.gltfModel) model1Data.gltfModel.visible = false;
-
-            // Lights: Fade in secondary lights as Model 2 (Sequence 2) transitions away, preparing for Model 1 (part of Sequence 2 completion)
-            // Main light intensity for Model 2 (currently 3.0) will change to 5.0 when Model 1 is fully up.
-            if (newLight1 && newLight2) {
-                isFadingInLights = true;
-                lightsFadeInStartTime = clickTime + animationConfig.TRANSITION_DELAY; // Delay fade-in start
-                isFadingOutLights = false;
-                newLight1.intensity = 0.0; // Start fade from zero
-                newLight2.intensity = 0.0;
-                console.log("Preparing to fade in lights for Model 1 (Sequence 2 complete to 1). Start time:", lightsFadeInStartTime);
-            }
-        }
+        console.log("Model 1 clicked. No action currently configured in simplified script.");
     }, false);
 
     animate(); // Start the main animation loop
@@ -318,61 +235,61 @@ function animate() {
     // Update model animations (scaling, rotation)
     updateModelAnimations(deltaTime, elapsedTimeTotal);
 
-    // --- Sequence State Machine for Transitions ---
-    switch (currentSequenceState) {
-        case SEQUENCE_STATES.SEQUENCE_1_START_TRANSITION_AWAY:
-            if (!model1Data.isScalingDown && elapsedTimeTotal >= clickTime + animationConfig.TRANSITION_DELAY) { // Model 1 done scaling down, delay passed
-                console.log("Transition: Model 1 scaled down (Sequence 1 Away), initiating Model 2 scale up (Sequence 1 Complete to 2). Time:", elapsedTimeTotal);
-                currentSequenceState = SEQUENCE_STATES.SEQUENCE_1_COMPLETE_TRANSITION_TO_2;
-                // Initialize Model 2 for scaling up
-                if (model2Data.gltfModel) {
-                    model2Data.gltfModel.visible = true;
-                    model2Data.gltfModel.scale.set(0, 0, 0);
-                    model2Data.isScalingUp = true;
-                    model2Data.initialQuaternionDuringScaleUp = null;
-                    model2Data.scaleStartTime = elapsedTimeTotal;
-                    model2Data.isRotationBoostActive = true;
-                    model2Data.boostEndTime = elapsedTimeTotal + animationConfig.BOOST_DURATION;
-                }
-            }
-            break;
-        case SEQUENCE_STATES.SEQUENCE_1_COMPLETE_TRANSITION_TO_2:
-            if (!model2Data.isScalingUp) { // Model 2 done scaling up
-                console.log("Transition: Model 2 scaled up (Sequence 1 Complete to 2), now Model 2 Idle. Time:", elapsedTimeTotal);
-                currentSequenceState = SEQUENCE_STATES.SEQUENCE_2_IDLE;
-                // Final light setup for Model 2 Idle state
-                if (directionalLight) directionalLight.intensity = 3.0;
-                if (newLight1) newLight1.intensity = 0.0; // Should be fully faded out
-                if (newLight2) newLight2.intensity = 0.0;
-            }
-            break;
-        case SEQUENCE_STATES.SEQUENCE_2_START_TRANSITION_AWAY:
-            if (!model2Data.isScalingDown && elapsedTimeTotal >= clickTime + animationConfig.TRANSITION_DELAY) { // Model 2 done scaling down, delay passed
-                console.log("Transition: Model 2 scaled down (Sequence 2 Away), initiating Model 1 scale up (Sequence 2 Complete to 1). Time:", elapsedTimeTotal);
-                currentSequenceState = SEQUENCE_STATES.SEQUENCE_2_COMPLETE_TRANSITION_TO_1;
-                // Initialize Model 1 for scaling up
-                if (model1Data.gltfModel) {
-                    model1Data.gltfModel.visible = true;
-                    model1Data.gltfModel.scale.set(0, 0, 0);
-                    model1Data.isScalingUp = true;
-                    model1Data.initialQuaternionDuringScaleUp = null;
-                    model1Data.scaleStartTimeUp = elapsedTimeTotal;
-                    model1Data.isRotationBoostActive = true;
-                    model1Data.boostEndTime = elapsedTimeTotal + animationConfig.BOOST_DURATION;
-                }
-            }
-            break;
-        case SEQUENCE_STATES.SEQUENCE_2_COMPLETE_TRANSITION_TO_1:
-            if (!model1Data.isScalingUp) { // Model 1 done scaling up
-                console.log("Transition: Model 1 scaled up (Sequence 2 Complete to 1), now Model 1 Idle. Time:", elapsedTimeTotal);
-                currentSequenceState = SEQUENCE_STATES.SEQUENCE_1_IDLE;
-                // Final light setup for Model 1 Idle state
-                if (directionalLight) directionalLight.intensity = 5.0;
-                if (newLight1) newLight1.intensity = 5.0; // Should be fully faded in
-                if (newLight2) newLight2.intensity = 5.0;
-            }
-            break;
-    }
+    // --- Sequence State Machine for Transitions --- (REMOVED)
+    // switch (currentSequenceState) {
+    //     case SEQUENCE_STATES.SEQUENCE_1_START_TRANSITION_AWAY:
+    //         if (!model1Data.isScalingDown && elapsedTimeTotal >= clickTime + animationConfig.TRANSITION_DELAY) { // Model 1 done scaling down, delay passed
+    //             console.log("Transition: Model 1 scaled down (Sequence 1 Away), initiating Model 2 scale up (Sequence 1 Complete to 2). Time:", elapsedTimeTotal);
+    //             currentSequenceState = SEQUENCE_STATES.SEQUENCE_1_COMPLETE_TRANSITION_TO_2;
+    //             // Initialize Model 2 for scaling up
+    //             if (model2Data.gltfModel) {
+    //                 model2Data.gltfModel.visible = true;
+    //                 model2Data.gltfModel.scale.set(0, 0, 0);
+    //                 model2Data.isScalingUp = true;
+    //                 model2Data.initialQuaternionDuringScaleUp = null;
+    //                 model2Data.scaleStartTime = elapsedTimeTotal;
+    //                 model2Data.isRotationBoostActive = true;
+    //                 model2Data.boostEndTime = elapsedTimeTotal + animationConfig.BOOST_DURATION;
+    //             }
+    //         }
+    //         break;
+    //     case SEQUENCE_STATES.SEQUENCE_1_COMPLETE_TRANSITION_TO_2:
+    //         if (!model2Data.isScalingUp) { // Model 2 done scaling up
+    //             console.log("Transition: Model 2 scaled up (Sequence 1 Complete to 2), now Model 2 Idle. Time:", elapsedTimeTotal);
+    //             currentSequenceState = SEQUENCE_STATES.SEQUENCE_2_IDLE;
+    //             // Final light setup for Model 2 Idle state
+    //             if (directionalLight) directionalLight.intensity = 3.0;
+    //             if (newLight1) newLight1.intensity = 0.0; // Should be fully faded out
+    //             if (newLight2) newLight2.intensity = 0.0;
+    //         }
+    //         break;
+    //     case SEQUENCE_STATES.SEQUENCE_2_START_TRANSITION_AWAY:
+    //         if (!model2Data.isScalingDown && elapsedTimeTotal >= clickTime + animationConfig.TRANSITION_DELAY) { // Model 2 done scaling down, delay passed
+    //             console.log("Transition: Model 2 scaled down (Sequence 2 Away), initiating Model 1 scale up (Sequence 2 Complete to 1). Time:", elapsedTimeTotal);
+    //             currentSequenceState = SEQUENCE_STATES.SEQUENCE_2_COMPLETE_TRANSITION_TO_1;
+    //             // Initialize Model 1 for scaling up
+    //             if (model1Data.gltfModel) {
+    //                 model1Data.gltfModel.visible = true;
+    //                 model1Data.gltfModel.scale.set(0, 0, 0);
+    //                 model1Data.isScalingUp = true;
+    //                 model1Data.initialQuaternionDuringScaleUp = null;
+    //                 model1Data.scaleStartTimeUp = elapsedTimeTotal;
+    //                 model1Data.isRotationBoostActive = true;
+    //                 model1Data.boostEndTime = elapsedTimeTotal + animationConfig.BOOST_DURATION;
+    //             }
+    //         }
+    //         break;
+    //     case SEQUENCE_STATES.SEQUENCE_2_COMPLETE_TRANSITION_TO_1:
+    //         if (!model1Data.isScalingUp) { // Model 1 done scaling up
+    //             console.log("Transition: Model 1 scaled up (Sequence 2 Complete to 1), now Model 1 Idle. Time:", elapsedTimeTotal);
+    //             currentSequenceState = SEQUENCE_STATES.SEQUENCE_1_IDLE;
+    //             // Final light setup for Model 1 Idle state
+    //             if (directionalLight) directionalLight.intensity = 5.0;
+    //             if (newLight1) newLight1.intensity = 5.0; // Should be fully faded in
+    //             if (newLight2) newLight2.intensity = 5.0;
+    //         }
+    //         break;
+    // }
     renderer.render(scene, camera); // Render the scene with the updated camera and objects
 }
 
@@ -381,46 +298,47 @@ function animate() {
  * @param {number} elapsedTimeTotal - The total elapsed time from the THREE.Clock.
  */
 function updateLightAnimations(elapsedTimeTotal) {
-    // --- Light Fading Out Logic (for newLight1 and newLight2) ---
-    if (isFadingOutLights) {
-        const animElapsedTime = elapsedTimeTotal - lightsFadeStartTime; // Time since fade out started
-        if (animElapsedTime < animationConfig.SCALE_DURATION) {
-            // Calculate progress (0 to 1) of the fade-out animation
-            const fadeProgress = animElapsedTime / animationConfig.SCALE_DURATION;
-            // Decrease intensity from 5.0 down to 0.0 based on progress
-            const currentIntensity = 5.0 * (1.0 - fadeProgress);
-            if (newLight1) newLight1.intensity = Math.max(0, currentIntensity); // Ensure intensity doesn't go below 0
-            if (newLight2) newLight2.intensity = Math.max(0, currentIntensity);
-        } else {
-            // Animation finished, ensure lights are fully off
-            if (newLight1) newLight1.intensity = 0;
-            if (newLight2) newLight2.intensity = 0;
-            isFadingOutLights = false; // Reset flag
-            console.log("Lights faded out. Time:", elapsedTimeTotal);
-        }
-    }
+    /* Lights temporarily disabled for debugging */
+    // // --- Light Fading Out Logic (for newLight1 and newLight2) ---
+    // if (isFadingOutLights) {
+    //     const animElapsedTime = elapsedTimeTotal - lightsFadeStartTime; // Time since fade out started
+    //     if (animElapsedTime < animationConfig.SCALE_DURATION) {
+    //         // Calculate progress (0 to 1) of the fade-out animation
+    //         const fadeProgress = animElapsedTime / animationConfig.SCALE_DURATION;
+    //         // Decrease intensity from 5.0 down to 0.0 based on progress
+    //         const currentIntensity = 5.0 * (1.0 - fadeProgress);
+    //         if (newLight1) newLight1.intensity = Math.max(0, currentIntensity); // Ensure intensity doesn't go below 0
+    //         if (newLight2) newLight2.intensity = Math.max(0, currentIntensity);
+    //     } else {
+    //         // Animation finished, ensure lights are fully off
+    //         if (newLight1) newLight1.intensity = 0;
+    //         if (newLight2) newLight2.intensity = 0;
+    //         isFadingOutLights = false; // Reset flag
+    //         console.log("Lights faded out. Time:", elapsedTimeTotal);
+    //     }
+    // }
 
-    // --- Light Fading In Logic (for newLight1 and newLight2) ---
-    if (isFadingInLights) {
-        // Wait for the specified delay (lightsFadeInStartTime) before starting the fade-in
-        if (elapsedTimeTotal >= lightsFadeInStartTime) {
-            const animElapsedTime = elapsedTimeTotal - lightsFadeInStartTime; // Time since fade in should have started
-            if (animElapsedTime < animationConfig.SCALE_DURATION) {
-                // Calculate progress (0 to 1) of the fade-in animation
-                const fadeInProgress = animElapsedTime / animationConfig.SCALE_DURATION;
-                // Increase intensity from 0.0 up to 5.0 based on progress
-                const currentIntensity = 5.0 * fadeInProgress;
-                if (newLight1) newLight1.intensity = Math.min(5.0, currentIntensity); // Ensure intensity doesn't exceed 5.0
-                if (newLight2) newLight2.intensity = Math.min(5.0, currentIntensity);
-            } else {
-                // Animation finished, ensure lights are fully on
-                if (newLight1) newLight1.intensity = 5.0;
-                if (newLight2) newLight2.intensity = 5.0;
-                isFadingInLights = false; // Reset flag
-                console.log("Lights faded in. Time:", elapsedTimeTotal);
-            }
-        }
-    }
+    // // --- Light Fading In Logic (for newLight1 and newLight2) ---
+    // if (isFadingInLights) {
+    //     // Wait for the specified delay (lightsFadeInStartTime) before starting the fade-in
+    //     if (elapsedTimeTotal >= lightsFadeInStartTime) {
+    //         const animElapsedTime = elapsedTimeTotal - lightsFadeInStartTime; // Time since fade in should have started
+    //         if (animElapsedTime < animationConfig.SCALE_DURATION) {
+    //             // Calculate progress (0 to 1) of the fade-in animation
+    //             const fadeInProgress = animElapsedTime / animationConfig.SCALE_DURATION;
+    //             // Increase intensity from 0.0 up to 5.0 based on progress
+    //             const currentIntensity = 5.0 * fadeInProgress;
+    //             if (newLight1) newLight1.intensity = Math.min(5.0, currentIntensity); // Ensure intensity doesn't exceed 5.0
+    //             if (newLight2) newLight2.intensity = Math.min(5.0, currentIntensity);
+    //         } else {
+    //             // Animation finished, ensure lights are fully on
+    //             if (newLight1) newLight1.intensity = 5.0;
+    //             if (newLight2) newLight2.intensity = 5.0;
+    //             isFadingInLights = false; // Reset flag
+    //             console.log("Lights faded in. Time:", elapsedTimeTotal);
+    //         }
+    //     }
+    // }
 }
 
 /**
@@ -442,97 +360,76 @@ function animateModel(modelData, deltaTime, elapsedTimeTotal) {
 
     if (!modelData.gltfModel) return; // Exit if the model isn't loaded yet
 
-    // --- Scaling Down Logic ---
+    // --- Scaling Down Logic --- (REMOVED FOR SIMPLICITY)
     // Handles the animation when a model is shrinking and disappearing.
-    if (modelData.isScalingDown) {
-        // Model 1 uses 'scaleStartTime', Model 2 uses 'scaleStartTimeDown' for its distinct sequence.
-        const startTime = (modelData === model1Data) ? modelData.scaleStartTime : modelData.scaleStartTimeDown;
-        const animElapsedTime = elapsedTimeTotal - startTime; // Time since scaling down started
+    // if (modelData.isScalingDown) {
+    //     // Model 1 uses 'scaleStartTime', Model 2 uses 'scaleStartTimeDown' for its distinct sequence.
+    //     const startTime = (modelData === model1Data) ? modelData.scaleStartTime : modelData.scaleStartTimeDown;
+    //     const animElapsedTime = elapsedTimeTotal - startTime; // Time since scaling down started
+    //
+    //     if (animElapsedTime < animationConfig.SCALE_DURATION) {
+    //         const scaleProgress = animElapsedTime / animationConfig.SCALE_DURATION; // Progress from 0 to 1
+    //         const currentScalar = 1.0 - scaleProgress; // Scale factor from 1 down to 0
+    //         modelData.gltfModel.scale.set(
+    //             modelData.initialScale.x * currentScalar,
+    //             modelData.initialScale.y * currentScalar,
+    //             modelData.initialScale.z * currentScalar
+    //         );
+    //     } else {
+    //         // Scaling down finished
+    //         modelData.gltfModel.scale.set(0, 0, 0); // Ensure scale is zero
+    //         modelData.isScalingDown = false;       // Reset flag
+    //         modelData.gltfModel.visible = false;   // Hide the model
+    //         console.log(`Model (${modelData.modelUrl}) completed scaling down. Time:`, elapsedTimeTotal);
+    //     }
+    // }
 
-        if (animElapsedTime < animationConfig.SCALE_DURATION) {
-            const scaleProgress = animElapsedTime / animationConfig.SCALE_DURATION; // Progress from 0 to 1
-            const currentScalar = 1.0 - scaleProgress; // Scale factor from 1 down to 0
-            modelData.gltfModel.scale.set(
-                modelData.initialScale.x * currentScalar,
-                modelData.initialScale.y * currentScalar,
-                modelData.initialScale.z * currentScalar
-            );
-        } else {
-            // Scaling down finished
-            modelData.gltfModel.scale.set(0, 0, 0); // Ensure scale is zero
-            modelData.isScalingDown = false;       // Reset flag
-            modelData.gltfModel.visible = false;   // Hide the model
-            console.log(`Model (${modelData.modelUrl}) completed scaling down. Time:`, elapsedTimeTotal);
-        }
-    }
-
-    // --- Scaling Up Logic ---
+    // --- Scaling Up Logic --- (REMOVED FOR SIMPLICITY)
     // Handles the animation when a model is growing and appearing.
-    if (modelData.isScalingUp) {
-        if (!modelData.initialQuaternionDuringScaleUp) {
-            modelData.initialQuaternionDuringScaleUp = modelData.gltfModel.quaternion.clone();
-        }
-        // Model 1 uses 'scaleStartTimeUp', Model 2 uses 'scaleStartTime' for its distinct sequence.
-         const startTime = (modelData === model1Data) ? modelData.scaleStartTimeUp : modelData.scaleStartTime;
-        const animElapsedTime = elapsedTimeTotal - startTime; // Time since scaling up started
-
-        if (animElapsedTime < animationConfig.SCALE_DURATION) {
-            const scaleProgress = animElapsedTime / animationConfig.SCALE_DURATION; // Progress from 0 to 1
-
-            const targetQuaternion = new THREE.Quaternion(); // Identity quaternion (0,0,0 rotation)
-            if (modelData.initialQuaternionDuringScaleUp) {
-                modelData.gltfModel.quaternion.copy(modelData.initialQuaternionDuringScaleUp).slerp(targetQuaternion, scaleProgress);
-            }
-            // Scale factor from 0 up to 1 (based on initialScale)
-            modelData.gltfModel.scale.set(
-                modelData.initialScale.x * scaleProgress,
-                modelData.initialScale.y * scaleProgress,
-                modelData.initialScale.z * scaleProgress
-            );
-        } else {
-            // Scaling up finished
-            modelData.gltfModel.scale.copy(modelData.initialScale); // Ensure scale is set to initial full scale
-            modelData.isScalingUp = false; // Reset flag
-            modelData.gltfModel.rotation.set(0, 0, 0); // Set final rotation to (0,0,0)
-            modelData.initialQuaternionDuringScaleUp = null; // Reset for next use
-
-            // Post-scaling up: Update active model identifier and set appropriate light intensities
-            // This is now handled by the state machine in the main animate() function upon transitioning to IDLE states.
-            // if (modelData === model1Data) { ... } else { ... }
-        }
-    }
+    // if (modelData.isScalingUp) {
+    //     if (!modelData.initialQuaternionDuringScaleUp) {
+    //         modelData.initialQuaternionDuringScaleUp = modelData.gltfModel.quaternion.clone();
+    //     }
+    //     // Model 1 uses 'scaleStartTimeUp', Model 2 uses 'scaleStartTime' for its distinct sequence.
+    //      const startTime = (modelData === model1Data) ? modelData.scaleStartTimeUp : modelData.scaleStartTime;
+    //     const animElapsedTime = elapsedTimeTotal - startTime; // Time since scaling up started
+    //
+    //     if (animElapsedTime < animationConfig.SCALE_DURATION) {
+    //         const scaleProgress = animElapsedTime / animationConfig.SCALE_DURATION; // Progress from 0 to 1
+    //
+    //         const targetQuaternion = new THREE.Quaternion(); // Identity quaternion (0,0,0 rotation)
+    //         if (modelData.initialQuaternionDuringScaleUp) {
+    //             modelData.gltfModel.quaternion.copy(modelData.initialQuaternionDuringScaleUp).slerp(targetQuaternion, scaleProgress);
+    //         }
+    //         // Scale factor from 0 up to 1 (based on initialScale)
+    //         modelData.gltfModel.scale.set(
+    //             modelData.initialScale.x * scaleProgress,
+    //             modelData.initialScale.y * scaleProgress,
+    //             modelData.initialScale.z * scaleProgress
+    //         );
+    //     } else {
+    //         // Scaling up finished
+    //         modelData.gltfModel.scale.copy(modelData.initialScale); // Ensure scale is set to initial full scale
+    //         modelData.isScalingUp = false; // Reset flag
+    //         modelData.gltfModel.rotation.set(0, 0, 0); // Set final rotation to (0,0,0)
+    //         modelData.initialQuaternionDuringScaleUp = null; // Reset for next use
+    //
+    //         // Post-scaling up: Update active model identifier and set appropriate light intensities
+    //         // This is now handled by the state machine in the main animate() function upon transitioning to IDLE states.
+    //         // if (modelData === model1Data) { ... } else { ... }
+    //     }
+    // }
 
     // --- Rotation Logic ---
     // Apply Y-axis rotation ONLY if the model is visible AND NOT currently scaling UP.
-    if (modelData.gltfModel.visible && !modelData.isScalingUp) {
-        let currentRotationSpeed = animationConfig.NORMAL_ROTATION_SPEED;
-
-        // Check for rotation boost (typically for scaling down or specific click events)
-        if (modelData.isRotationBoostActive) {
-            if (elapsedTimeTotal < modelData.boostEndTime) {
-                currentRotationSpeed = animationConfig.NORMAL_ROTATION_SPEED * animationConfig.BOOST_ROTATION_MULTIPLIER;
-            } else {
-                modelData.isRotationBoostActive = false; // Boost duration ended
-            }
-        }
-
-        const isModel1Idle = modelData === model1Data && currentSequenceState === SEQUENCE_STATES.SEQUENCE_1_IDLE;
-        const isModel2Idle = modelData === model2Data && currentSequenceState === SEQUENCE_STATES.SEQUENCE_2_IDLE;
-        const isCurrentlyTheActiveIdleModel = isModel1Idle || isModel2Idle;
-
-        // Apply rotation if:
-        // 1. The model is currently scaling down (boost may apply).
-        // 2. The model is the "active" one and in its IDLE state (normal rotation speed).
-        if (modelData.isScalingDown) {
-            modelData.gltfModel.rotation.y += currentRotationSpeed * deltaTime;
-        } else if (isCurrentlyTheActiveIdleModel) {
-            // For idle state, ensure boost is not active unless specifically intended.
-            if (modelData.isRotationBoostActive && elapsedTimeTotal < modelData.boostEndTime) {
-                modelData.gltfModel.rotation.y += currentRotationSpeed * deltaTime;
-            } else {
-                modelData.isRotationBoostActive = false; // Ensure boost is off for normal idle
-                modelData.gltfModel.rotation.y += animationConfig.NORMAL_ROTATION_SPEED * deltaTime;
-            }
+    // Since scaling up logic is removed, !modelData.isScalingUp will be true if isScalingUp is initialized to false.
+    if (modelData.gltfModel.visible && !modelData.isScalingUp) { // modelData is model1Data here
+        // If model1Data.isRotationBoostActive can still be true (e.g. from initial load or other logic), keep the boost check
+        if (modelData.isRotationBoostActive && elapsedTimeTotal < modelData.boostEndTime) {
+             modelData.gltfModel.rotation.y += animationConfig.NORMAL_ROTATION_SPEED * animationConfig.BOOST_ROTATION_MULTIPLIER * deltaTime;
+        } else {
+             modelData.isRotationBoostActive = false;
+             modelData.gltfModel.rotation.y += animationConfig.NORMAL_ROTATION_SPEED * deltaTime;
         }
     }
 }
@@ -546,7 +443,7 @@ function animateModel(modelData, deltaTime, elapsedTimeTotal) {
  */
 function updateModelAnimations(deltaTime, elapsedTimeTotal) {
     animateModel(model1Data, deltaTime, elapsedTimeTotal);
-    animateModel(model2Data, deltaTime, elapsedTimeTotal);
+    // animateModel(model2Data, deltaTime, elapsedTimeTotal); // Model 2 removed
 }
 
 // Start the application by calling the main initialization function
