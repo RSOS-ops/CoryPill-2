@@ -10,7 +10,7 @@ const clock = new THREE.Clock();
 // Holds all data related to the first 3D model
 const model1Data = {
     gltfModel: null, // The Three.js object for the model
-    modelUrl: 'https://raw.githubusercontent.com/RSOS-ops/CoryPill-2/main/HoodedCory_PlanarFace.glb', // URL to load the GLB/GLTF file
+    modelUrl: 'https://drive.google.com/uc?export=download&id=11MpeVe93wuSz3Lg9kWpgpQ_WpYP9V-yT', // URL to load the GLB/GLTF file
     initialScale: new THREE.Vector3(1, 1, 1), // Initial scale after normalization
     initialQuaternionDuringScaleUp: null,
     isRotationBoostActive: false, // Flag for rotation speed boost
